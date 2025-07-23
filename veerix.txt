@@ -1,0 +1,23 @@
+Molecule -search
+if you not finding in the list mention molcule here
+
+
+Packing approval
+
+choose designs temapltes from gally 
+approve designs - reject design 
+go for prining 
+current staus 
+
+Customer approved- qc appproved - sent for printing - in progress- despatched to factory 
+
+
+place order  - repeat order 
+check staus 
+
+brand name- payment - pakcign design - raw mataterial -under productions - under packing - under testing- deaptched - intrasit - received at disribiton cetnre= - delivered to cleints 
+
+admin panel ui 
+operation executive  ui 
+refferal partner ui 
+
