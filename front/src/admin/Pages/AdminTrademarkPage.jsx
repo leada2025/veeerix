@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "../api/Axios";
-import SuggestionsTable from "../components/SuggestionsTable";
+import SuggestionsTable from "../Components/SuggestionsTable";
 import ApproveModal from "../components/ApproveModal";
 
 const AdminTrademarkPage = () => {

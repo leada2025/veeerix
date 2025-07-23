@@ -16,7 +16,7 @@ const CustomerPackingPage = () => {
 
 
 
-  const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+  const BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://veeerix.onrender.com";
 
   // ✅ Safe localStorage access
   let user = null;

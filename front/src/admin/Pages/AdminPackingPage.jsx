@@ -66,7 +66,7 @@ const AdminPackingPage = () => {
 Design: {s.selectedDesign?.label}
 { s.selectedDesign?.imageUrl && (
   <img
-    src={`http://localhost:5000${s.selectedDesign.imageUrl}`}
+    src={`https://veeerix.onrender.com${s.selectedDesign.imageUrl}`}
     alt="Selected Design"
     className="mt-2 w-32 h-32 object-cover border"
   />
