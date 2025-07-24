@@ -9,12 +9,14 @@ const packingRoutes = require("./routes/packingRoutes");
 const moleculeRoutes = require("./routes/molecule");
 const cors = require("cors");
 const orderRoutes = require("./routes/orderRoutes");
+const distributionRoutes = require("./routes/distribution");
 
 const app = express();
 app.use(cors({
-  origin: "http://localhost:5173",
+  origin: ["http://localhost:5173", "https://veeerix-1.onrender.com"],
   credentials: true,
 }));
+
 app.use(express.json());
 
 // Connect to MongoDB
@@ -30,6 +32,7 @@ app.use("/packing", packingRoutes);
 app.use("/uploads", express.static("uploads"));
 app.use("/api/molecules", moleculeRoutes);
 app.use("/orders", orderRoutes);
+app.use("/distribution", distributionRoutes);
 
 
 // Start server

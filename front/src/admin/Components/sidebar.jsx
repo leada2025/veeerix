@@ -56,6 +56,14 @@ const sidebarLinks = [
        { label: "PackingStatus", path: "/admin/packingtrack" },
     ],
   },
+   {
+    name: "Order Management",
+    icon: ClipboardList,
+    submenu: [
+      { label: "Orders", path: "/admin/orders" },
+   ,
+    ],
+  },
 
 
 ];
