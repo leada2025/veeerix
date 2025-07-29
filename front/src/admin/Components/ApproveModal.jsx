@@ -30,7 +30,7 @@ const ApproveModal = ({ suggestion, onClose, onApprove }) => {
   if (!suggestion || !Array.isArray(suggestion.suggestions)) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 bg-opacity-40">
       <div className="bg-white w-full max-w-md mx-auto rounded-2xl shadow-xl p-6 relative border border-[#d1383a]">
         <h2 className="text-xl font-semibold mb-4 text-[#d1383a]">
           Approve Trademark Suggestions

@@ -35,13 +35,14 @@ router.post("/from-trademark", async (req, res) => {
 router.get('/customer/:customerId', async (req, res) => {
   try {
     const { customerId } = req.params;
-    const latestOrder = await Order.find({ customerId }).sort({ createdAt: -1 }).limit(1);
-    res.json(latestOrder);
+    const allOrders = await Order.find({ customerId }).sort({ createdAt: -1 });
+    res.json(allOrders);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Failed to fetch order' });
+    res.status(500).json({ error: 'Failed to fetch orders' });
   }
 });
+
 
 
 // GET orders for a specific customer (customer portal)
@@ -51,25 +52,26 @@ router.get("/options/:customerId", async (req, res) => {
     const { customerId } = req.params;
 
     // Find latest registered brand
-    const registeredBrand = await TrademarkSuggestion.findOne({
-      customerId,
-      trackingStatus: "Registered",
-    }).sort({ updatedAt: -1 });
+    const registeredBrands = await TrademarkSuggestion.find({
+  customerId,
+  trackingStatus: "Registered",
+}).sort({ updatedAt: -1 });
 
-    // Find latest paid molecule
-    const paidMolecule = await BrandRequest.findOne({
-      customerId,
-      status: "Paid",
-    }).sort({ updatedAt: -1 });
+const paidMolecules = await BrandRequest.find({
+  customerId,
+  status: "Paid", // or "Approved" if you're allowing un-paid access
+}).sort({ updatedAt: -1 });
 
-    if (!registeredBrand || !paidMolecule) {
-      return res.status(404).json({ error: "No registered brand or paid molecule found" });
-    }
+if (!registeredBrands.length || !paidMolecules.length) {
+  return res.status(404).json({ error: "No registered brands or paid molecules found" });
+}
 
-    res.json({
-      brandName: registeredBrand.selectedName,
-      moleculeName: paidMolecule.moleculeName,
-    });
+// Extract only the needed fields
+const brandNames = registeredBrands.map(b => b.selectedName);
+const moleculeNames = paidMolecules.map(m => m.moleculeName);
+
+res.json({ brandNames, moleculeNames });
+
   } catch (error) {
     console.error("Error fetching brand/molecule options:", error);
     res.status(500).json({ error: "Internal Server Error" });

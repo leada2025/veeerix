@@ -27,15 +27,34 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
   const navItems = [
     { label: "Create Your Brand", path: "/create-brand", icon: <Home size={20} /> },
     { label: "Trademark", path: "/trademark", icon: <FileText size={20} /> },
+     { label: "Trademark Status", path: "/trademarks/track", icon: <FileText size={20} /> },
+{ label: "Trademark History", path: "/trademarkh/history", icon: <FileText size={20} /> },
+
     { label: "Place Order", path: "/place-order", icon: <ShoppingCart size={20} /> },
     { label: "Packing Approval", path: "/packing-approval", icon: <PackageCheck size={20} /> },
+    { label: "Packing Status", path: "/packing/status", icon: <PackageCheck size={20} /> },
+      { label: "Packing History", path: "/packing-history", icon: <PackageCheck size={20} /> },
+
     { label: "Status", path: "/status", icon: <Info size={20} /> },
     { label: "Distribution", path: "/distribution", icon: <Truck size={20} /> },
   ];
 
-  const visibleNavItems = isFishman
-    ? navItems.filter((item) => item.label === "Trademark")
-    : navItems.filter((item) => !(hideTrademark && item.label === "Trademark"));
+const visibleNavItems = navItems.filter((item) => {
+  if (isFishman) {
+  return (
+    item.label === "Trademark" ||
+    item.label === "Trademark Status" ||
+    item.label === "Trademark History"
+  );
+
+
+  } else {
+    // For Veerix, hide Trademark-related pages
+    return item.label !== "Trademark" && item.label !== "Trademark Status"  && item.label !== "Trademark History";
+  }
+});
+
+
 
   return (
     <aside

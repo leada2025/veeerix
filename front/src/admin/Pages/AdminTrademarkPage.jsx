@@ -96,10 +96,12 @@ const AdminTrademarkPage = () => {
   );
 };
 
+
 const Section = ({ title, children }) => (
   <div>
     <h2 className="text-xl font-semibold mb-4 text-[#d1383a]">{title}</h2>
     {children}
+
   </div>
 );
 

@@ -9,6 +9,27 @@ const AvailablePackingDesign = require("../models/AvailablePackingDesign");
 const uploadDir = path.join(__dirname, "../uploads");
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
 
+router.get("/tracking/:customerId", async (req, res) => {
+  try {
+    const entries = await PackingDesign.find({
+      customerId: req.params.customerId,
+      status: "Approved",
+      trackingStep: { $gte: 0 },
+    }).sort({ updatedAt: -1 });
+
+    if (!entries.length) {
+      return res.status(404).json({ message: "No approved designs with tracking found" });
+    }
+
+    res.json(entries);
+  } catch (err) {
+    console.error("Error fetching multiple tracking entries:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+
+
 router.post("/designs/upload", upload.single("designFile"), async (req, res) => {
   const file = req.file;
   if (!file) return res.status(400).json({ message: "No file uploaded" });
@@ -76,18 +97,16 @@ router.post("/upload-admin", upload.single("finalDesign"), async (req, res) => {
     const filename = `${Date.now()}_final_${file.originalname}`;
     const filepath = path.join(uploadDir, filename);
     fs.writeFileSync(filepath, file.buffer);
+const design = await PackingDesign.findOneAndUpdate(
+  { customerId },
+  {
+    finalDesignUrl: `/uploads/${filename}`,
+    status: "Sent for Customer Approval",
+    $push: { history: { step: "Final design uploaded by admin" } },
+  },
+  { new: true, sort: { createdAt: -1 } } // ✅ update latest
+);
 
-    const design = await PackingDesign.findOneAndUpdate(
-      { customerId },
-      {
-        finalDesignUrl: `/uploads/${filename}`,
-        status: "Sent for Customer Approval",
-        $push: {
-          history: { step: "Final design uploaded by admin" },
-        },
-      },
-      { new: true }
-    );
 
     if (!design) return res.status(404).json({ message: "Design not found" });
 
@@ -104,9 +123,7 @@ router.post("/submit", async (req, res) => {
     const latest = await PackingDesign.findOne({ customerId }).sort({ createdAt: -1 });
 
     // Block submission if there's already one in progress
-    if (latest && latest.trackingStep < 4) {
-      return res.status(400).json({ message: "Already submitted and in progress" });
-    }
+ 
 
     const newEntry = new PackingDesign({
       customerId,
@@ -172,42 +189,37 @@ router.get("/submitted", async (req, res) => {
 });
 
 
-
 router.get("/:customerId", async (req, res) => {
   try {
-    const allDesigns = await PackingDesign.find({ customerId: req.params.customerId })
-      .sort({ createdAt: -1 });
-
-    if (!allDesigns || allDesigns.length === 0) {
-      return res.status(404).json({ message: "No designs found" });
-    }
-
-    const inProgress = allDesigns.find(d => d.trackingStep < 4);
-    if (inProgress) {
-      return res.json({ ...inProgress.toObject(), cycleStatus: "in-progress" });
-    }
-
-    // Completed design
-    return res.json({ ...allDesigns[0].toObject(), cycleStatus: "completed" });
+    const design = await PackingDesign.findOne({
+      customerId: req.params.customerId,
+      status: "Approved",
+    })
+      .sort({ updatedAt: -1 }); // latest approved
+    if (!design) return res.status(404).json({ message: "No approved packing design found" });
+    res.json(design);
   } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
+    console.error("Fetch error:", err);
+    res.status(500).json({ message: "Server error" });
   }
 });
 
 
 
 
+
+
+// POST /packing/approve — Customer approves final
 // POST /packing/approve — Customer approves final
 router.post("/approve", async (req, res) => {
-  const { customerId } = req.body;
+  const { designId } = req.body;
   try {
     const design = await PackingDesign.findOneAndUpdate(
-      { customerId },
+      { _id: designId },
       {
         status: "Approved",
-        $push: {
-          history: { step: "Customer Approved" },
-        },
+        trackingStep: 0,
+        $push: { history: { step: "Customer Approved" } },
       },
       { new: true }
     );
@@ -217,32 +229,37 @@ router.post("/approve", async (req, res) => {
   }
 });
 
+
+
 // POST /packing/reject — Customer rejects final
 router.post("/reject", async (req, res) => {
-  const { customerId, reason } = req.body;
-  try {
-    const design = await PackingDesign.findOne({
-      customerId,
-      status: "Sent for Customer Approval", // Only reject from approval stage
-    }).sort({ createdAt: -1 }); // Get latest cycle only
+  const { designId, reason } = req.body;
 
+  try {
+    const design = await PackingDesign.findById(designId);
     if (!design) {
       return res.status(404).json({ message: "No design found to reject" });
     }
 
+    if (!design.finalDesignUrl) {
+      return res.status(400).json({ message: "No final design exists to reject" });
+    }
+
     design.status = "Rejected";
     design.rejectionReason = reason;
-    design.finalDesignUrl = null; // Remove previous design
-    design.adminUploaded = false; // So it appears in admin panel again
-    design.trackingStep = 0; // Reset tracking if needed
+    design.finalDesignUrl = null;
+    design.adminUploaded = false;
+    design.trackingStep = 0;
+
     await design.save();
 
-    res.json({ message: "Design rejected successfully", design });
+    res.json({ message: "Design rejected and reset", design });
   } catch (err) {
     console.error("Reject error:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
+
 
 
 // PUT /packing/final-upload — Admin uploads final design

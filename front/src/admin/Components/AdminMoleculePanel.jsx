@@ -8,6 +8,9 @@ const AdminMoleculePanel = () => {
   const [loading, setLoading] = useState(false);
   const [editId, setEditId] = useState(null);
   const [editValue, setEditValue] = useState("");
+  const [newAmount, setNewAmount] = useState("");
+const [editAmount, setEditAmount] = useState("");
+
 
   const fetchMolecules = async () => {
     try {
@@ -22,19 +25,24 @@ const AdminMoleculePanel = () => {
     fetchMolecules();
   }, []);
 
-  const handleAdd = async () => {
-    if (!newMolecule.trim()) return;
-    setLoading(true);
-    try {
-      await axios.post("/api/molecules", { name: newMolecule.trim() });
-      setNewMolecule("");
-      fetchMolecules();
-    } catch (err) {
-      alert("Error adding molecule. It may already exist.");
-    } finally {
-      setLoading(false);
-    }
-  };
+ const handleAdd = async () => {
+  if (!newMolecule.trim()) return;
+  setLoading(true);
+  try {
+    await axios.post("/api/molecules", {
+      name: newMolecule.trim(),
+      amount: Number(newAmount) || 0,
+    });
+    setNewMolecule("");
+    setNewAmount("");
+    fetchMolecules();
+  } catch (err) {
+    alert("Error adding molecule. It may already exist.");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this molecule?")) return;
@@ -46,38 +54,51 @@ const AdminMoleculePanel = () => {
     }
   };
 
-  const handleEdit = async (id) => {
-    if (!editValue.trim()) return;
-    try {
-      await axios.patch(`/api/molecules/${id}`, { name: editValue.trim() });
-      setEditId(null);
-      setEditValue("");
-      fetchMolecules();
-    } catch (err) {
-      alert("Error updating molecule.");
-    }
-  };
+const handleEdit = async (id) => {
+  if (!editValue.trim()) return;
+  try {
+    await axios.patch(`/api/molecules/${id}`, {
+      name: editValue.trim(),
+      amount: Number(editAmount) || 0,
+    });
+    setEditId(null);
+    setEditValue("");
+    setEditAmount("");
+    fetchMolecules();
+  } catch (err) {
+    alert("Error updating molecule.");
+  }
+};
+
 
   return (
     <div className="p-6 max-w-2xl mx-auto bg-white shadow-xl rounded-xl border border-gray-200">
       <h2 className="text-2xl font-semibold text-[#d1383a] mb-6">Manage Molecules</h2>
 
-      <div className="flex gap-3 mb-6">
-        <input
-          type="text"
-          className="border px-4 py-2 rounded w-full"
-          placeholder="Enter molecule name"
-          value={newMolecule}
-          onChange={(e) => setNewMolecule(e.target.value)}
-        />
-        <button
-          onClick={handleAdd}
-          disabled={loading}
-          className="bg-[#d1383a] text-white px-5 py-2 rounded hover:bg-red-700 transition"
-        >
-          Add
-        </button>
-      </div>
+     <div className="flex gap-3 mb-6">
+  <input
+    type="text"
+    className="border px-4 py-2 rounded w-full"
+    placeholder="Enter molecule name"
+    value={newMolecule}
+    onChange={(e) => setNewMolecule(e.target.value)}
+  />
+  <input
+    type="number"
+    className="border px-4 py-2 rounded w-36"
+    placeholder="Amount"
+    value={newAmount}
+    onChange={(e) => setNewAmount(e.target.value)}
+  />
+  <button
+    onClick={handleAdd}
+    disabled={loading}
+    className="bg-[#d1383a] text-white px-5 py-2 rounded hover:bg-red-700 transition"
+  >
+    Add
+  </button>
+</div>
+
 
       <ul className="space-y-3">
         {molecules.map((mol) => (
@@ -85,16 +106,29 @@ const AdminMoleculePanel = () => {
             key={mol._id}
             className="flex items-center justify-between bg-gray-100 px-4 py-2 rounded"
           >
-            {editId === mol._id ? (
-              <input
-                type="text"
-                value={editValue}
-                onChange={(e) => setEditValue(e.target.value)}
-                className="border px-2 py-1 rounded w-full mr-2"
-              />
-            ) : (
-              <span className="flex-1">{mol.name}</span>
-            )}
+     {editId === mol._id ? (
+  <div className="flex flex-1 gap-2">
+    <input
+      type="text"
+      value={editValue}
+      onChange={(e) => setEditValue(e.target.value)}
+      className="border px-2 py-1 rounded w-full"
+    />
+    <input
+      type="number"
+      value={editAmount}
+      onChange={(e) => setEditAmount(e.target.value)}
+      className="border px-2 py-1 rounded w-28"
+      placeholder="Amount"
+    />
+  </div>
+) : (
+  <div className="flex-1 flex justify-between pr-4">
+    <span>{mol.name}</span>
+    <span className="text-gray-600 text-sm">({mol.amount || 0})</span>
+  </div>
+)}
+
 
             <div className="flex items-center gap-2">
               {editId === mol._id ? (
@@ -118,10 +152,11 @@ const AdminMoleculePanel = () => {
               ) : (
                 <>
                   <button
-                    onClick={() => {
-                      setEditId(mol._id);
-                      setEditValue(mol.name);
-                    }}
+                  onClick={() => {
+  setEditId(mol._id);
+  setEditValue(mol.name);
+  setEditAmount(mol.amount || 0);
+}}
                     className="text-blue-600 hover:text-blue-800"
                   >
                     <Pencil size={18} />

@@ -70,7 +70,7 @@ const AdminAvailableDesignsPage = () => {
         {designs.map((design) => (
           <div key={design._id} className="border p-2 rounded text-center">
           <img
-  src={`https://veeerix.onrender.com${design.imageUrl}`} // replace with production URL after deploy
+  src={`http://localhost:5000${design.imageUrl}`} // replace with production URL after deploy
   alt={design.label || "Design"}
   className="w-full h-32 object-cover rounded"
 />

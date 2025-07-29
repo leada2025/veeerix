@@ -1,8 +1,10 @@
 const express = require("express");
 const router = express.Router();
 const Trademark = require("../models/TrademarkSuggestion");
+const mongoose = require("mongoose");
 
-// 1. Customer submits trademark suggestions
+
+
 router.post("/", async (req, res) => {
   const { customerId, suggestions } = req.body;
 

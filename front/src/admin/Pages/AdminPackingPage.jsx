@@ -64,13 +64,19 @@ const AdminPackingPage = () => {
             >
             Customer: {s.customerName || s.customerId} <br />
 Design: {s.selectedDesign?.label}
-{ s.selectedDesign?.imageUrl && (
+{s.status === "Rejected" && (
+  <div className="text-red-600 mt-1">
+    <strong>Rejected:</strong> {s.rejectionReason || "No reason given"}
+  </div>
+)}
+{s.selectedDesign?.imageUrl && (
   <img
     src={`https://veeerix.onrender.com${s.selectedDesign.imageUrl}`}
     alt="Selected Design"
     className="mt-2 w-32 h-32 object-cover border"
   />
 )}
+
 
             </li>
           ))}

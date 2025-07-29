@@ -8,6 +8,12 @@ import PlaceOrder from "../Components/PlaceOrder";
 import StatusPage from "../Components/StatusPage";
 import PackingApprovalPage from "../Components/PackingApproval";
 import DistributionPage from "../Components/DistributionPage";
+import TrademarkTracklinePage from "../Components/TrademarkTracklinePage";
+import TrademarkHistory from "../Components/TrademarkHistory";
+import PackingStatusPage from "../Components/PackingStatusPage";
+import PackingHistory from "../Components/PackingHistory";
+
+
 
 const CustomerRoutes = () => (
   <Route element={<CustomerLayout />}>
@@ -17,6 +23,14 @@ const CustomerRoutes = () => (
     <Route path="/status" element={<StatusPage />} />
     <Route path="/packing-approval" element={<PackingApprovalPage />} />
     <Route path="/distribution" element={<DistributionPage />} />
+       <Route path="/trademarks/track" element={<TrademarkTracklinePage />} />
+       <Route path="/trademarkh/history" element={<TrademarkHistory />} />
+       <Route path="/packing/status" element={<PackingStatusPage />} />
+            <Route path="/packing-history" element={<PackingHistory />} />
+
+
+
+
   </Route>
 );
 

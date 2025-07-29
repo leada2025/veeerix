@@ -11,6 +11,7 @@ import AdminAvailableDesignsPage from "../admin/Components/AdminAvailableDesigns
 import AdminTracklineUpdate from "../admin/Components/AdminPackingTrackline";
 import AdminMoleculePanel from "../admin/Components/AdminMoleculePanel";
 import AdminOrderPanel from "../admin/Pages/AdminOrderPanel";
+import AdminDashboard from "../admin/Pages/AdminDashboard";
 
 
 const AdminRoutes = () => (
@@ -25,6 +26,7 @@ const AdminRoutes = () => (
        <Route path="packingtrack" element={<AdminTracklineUpdate/>} />
         <Route path="addmolecule" element={<AdminMoleculePanel/>} />
         <Route path="orders" element={<AdminOrderPanel/>} />
+         <Route path="dashboard" element={<AdminDashboard/>} />
     </Route>
   </>
 );
