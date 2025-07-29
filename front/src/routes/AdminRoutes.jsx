@@ -26,7 +26,7 @@ const AdminRoutes = () => (
        <Route path="packingtrack" element={<AdminTracklineUpdate/>} />
         <Route path="addmolecule" element={<AdminMoleculePanel/>} />
         <Route path="orders" element={<AdminOrderPanel/>} />
-         <Route path="dashboard" element={<AdminDashboard/>} />
+         <Route path="/" element={<AdminDashboard/>} />
     </Route>
   </>
 );
