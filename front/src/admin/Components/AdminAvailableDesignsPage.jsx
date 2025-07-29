@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "../api/Axios";
+import { BASE_URL } from "../api/config";
 
 const AdminAvailableDesignsPage = () => {
   const [designs, setDesigns] = useState([]);
@@ -70,7 +71,7 @@ const AdminAvailableDesignsPage = () => {
         {designs.map((design) => (
           <div key={design._id} className="border p-2 rounded text-center">
           <img
-  src={`http://localhost:5000${design.imageUrl}`} // replace with production URL after deploy
+ src={`${BASE_URL}${design.imageUrl}`}  // replace with production URL after deploy
   alt={design.label || "Design"}
   className="w-full h-32 object-cover rounded"
 />

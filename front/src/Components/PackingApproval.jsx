@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from "react";
 import axios from "../api/Axios";
 import { useNavigate } from "react-router-dom";
+import { BASE_URL } from "../api/config";
 
 const CustomerPackingPage = () => {
   const [designs, setDesigns] = useState([]);
   const [selectedDesign, setSelectedDesign] = useState(null);
   const [history, setHistory] = useState([]);
 
-  const BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://veeerix.onrender.com";
+ 
   const navigate = useNavigate();
 
   let user = null;

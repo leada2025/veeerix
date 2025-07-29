@@ -3,7 +3,8 @@ import Axios from "../api/Axios";
 
 const DistributionPage = () => {
   const [activeTab, setActiveTab] = useState("customers");
-
+const [brands, setBrands] = useState([]);
+const [molecules, setMolecules] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [formData, setFormData] = useState({
@@ -12,15 +13,34 @@ const DistributionPage = () => {
   const [editingIndex, setEditingIndex] = useState(null);
 
   const [salesOrders, setSalesOrders] = useState([]);
-  const [orderData, setOrderData] = useState({
-    customer: "", product: "", quantity: 1, notes: "",
-  });
+ const [orderData, setOrderData] = useState({
+  customer: "", brandName: "", moleculeName: "", quantity: 1, notes: "",
+});
+
 
   // Load customers & orders from backend
   useEffect(() => {
     fetchCustomers();
     fetchOrders();
   }, []);
+
+  useEffect(() => {
+  const user = JSON.parse(localStorage.getItem("user"));
+  const customerId = user?.id;
+
+  const fetchBrandAndMolecule = async () => {
+    try {
+      const res = await Axios.get(`/orders/options/${customerId}`);
+      const { brandNames, moleculeNames } = res.data;
+      setBrands(brandNames || []);
+      setMolecules(moleculeNames || []);
+    } catch (err) {
+      console.error("Failed to fetch brand and molecule", err);
+    }
+  };
+
+  fetchBrandAndMolecule();
+}, []);
 
   const fetchCustomers = async () => {
     try {
@@ -94,27 +114,34 @@ const DistributionPage = () => {
   };
 
   const submitOrder = async (e) => {
-    e.preventDefault();
-    const selectedCustomer = customers.find(c => c.name === orderData.customer);
-    if (!selectedCustomer) return alert("Customer not found");
+  e.preventDefault();
 
-    try {
-      const payload = {
-        customerId: "64f1c447...loggedInUserId", // Replace with actual user ID if using auth
-        subCustomerId: selectedCustomer._id,
-        brandName: orderData.product,
-        moleculeName: "Default Molecule",
-        quantity: orderData.quantity,
-        notes: orderData.notes,
-      };
+  const selectedCustomer = customers.find(c => c.name === orderData.customer);
+  if (!selectedCustomer) return alert("Customer not found");
 
-      const res = await Axios.post("distribution/orders", payload);
-      setSalesOrders([...salesOrders, res.data]);
-      setOrderData({ customer: "", product: "", quantity: 1, notes: "" });
-    } catch (err) {
-      console.error("Order submission error:", err);
-    }
-  };
+  const user = JSON.parse(localStorage.getItem("user")); // ✅ Add this
+  const customerId = user?.id; // ✅ Use actual ID
+
+  if (!customerId) return alert("Logged-in user not found");
+
+  try {
+    const payload = {
+      customerId, // ✅ correct reference
+      subCustomerId: selectedCustomer._id,
+      brandName: orderData.brandName,
+      moleculeName: orderData.moleculeName,
+      quantity: orderData.quantity,
+      notes: orderData.notes,
+    };
+
+    const res = await Axios.post("distribution/orders", payload);
+    setSalesOrders([...salesOrders, res.data]);
+    setOrderData({ customer: "", brandName: "", moleculeName: "", quantity: 1, notes: "" });
+  } catch (err) {
+    console.error("Order submission error:", err);
+  }
+};
+
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
@@ -212,17 +239,38 @@ const DistributionPage = () => {
               </select>
             </div>
 
-            <div>
-              <label className="text-sm text-gray-700">Product Name</label>
-              <input
-                type="text"
-                name="product"
-                value={orderData.product}
-                onChange={handleOrderChange}
-                className="w-full mt-1 px-3 py-2 border rounded-md"
-                required
-              />
-            </div>
+       <div>
+  <label className="text-sm text-gray-700">Brand Name</label>
+  <select
+    name="brandName"
+    value={orderData.brandName || ""}
+    onChange={(e) => setOrderData({ ...orderData, brandName: e.target.value })}
+    className="w-full mt-1 px-3 py-2 border rounded-md"
+    required
+  >
+    <option value="">Select Brand</option>
+    {brands.map((b, idx) => (
+      <option key={idx} value={b}>{b}</option>
+    ))}
+  </select>
+</div>
+
+<div>
+  <label className="text-sm text-gray-700">Molecule Name</label>
+  <select
+    name="moleculeName"
+    value={orderData.moleculeName || ""}
+    onChange={(e) => setOrderData({ ...orderData, moleculeName: e.target.value })}
+    className="w-full mt-1 px-3 py-2 border rounded-md"
+    required
+  >
+    <option value="">Select Molecule</option>
+    {molecules.map((m, idx) => (
+      <option key={idx} value={m}>{m}</option>
+    ))}
+  </select>
+</div>
+
             <div>
               <label className="text-sm text-gray-700">Quantity</label>
               <input

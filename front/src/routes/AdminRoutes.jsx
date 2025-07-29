@@ -17,6 +17,7 @@ import AdminDashboard from "../admin/Pages/AdminDashboard";
 const AdminRoutes = () => (
   <>
     <Route path="/admin" element={<AdminLayout />}>
+    <Route index element={<AdminDashboard />} /> 
       <Route path="customer" element={<CustomerManagement />} />
       <Route path="molecule" element={<AdminBrandRequestPage />} />
       <Route path="trademark" element={<AdminTrademarkPage />} />
@@ -26,7 +27,7 @@ const AdminRoutes = () => (
        <Route path="packingtrack" element={<AdminTracklineUpdate/>} />
         <Route path="addmolecule" element={<AdminMoleculePanel/>} />
         <Route path="orders" element={<AdminOrderPanel/>} />
-         <Route path="/" element={<AdminDashboard/>} />
+         <Route path="dashboard" element={<AdminDashboard/>} />
     </Route>
   </>
 );

@@ -1,10 +1,11 @@
 // src/pages/PackingHistory.jsx
 import React, { useEffect, useState } from "react";
 import axios from "../admin/api/Axios";
+import { BASE_URL } from "../api/config";
 
 const PackingHistory = () => {
   const [history, setHistory] = useState([]);
-  const BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://veeerix.onrender.com";
+ 
 
   let user = null;
   try {

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "../api/Axios";
+import { BASE_URL } from "../api/config"
 
 const AdminPackingPage = () => {
   const [submissions, setSubmissions] = useState([]);
@@ -71,7 +72,7 @@ Design: {s.selectedDesign?.label}
 )}
 {s.selectedDesign?.imageUrl && (
   <img
-    src={`https://veeerix.onrender.com${s.selectedDesign.imageUrl}`}
+     src={`${BASE_URL}${s.selectedDesign.imageUrl}`}
     alt="Selected Design"
     className="mt-2 w-32 h-32 object-cover border"
   />

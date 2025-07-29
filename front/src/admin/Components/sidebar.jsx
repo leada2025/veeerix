@@ -20,7 +20,7 @@ const sidebarLinks = [
     name: "Dashboard",
     icon: LayoutDashboard,
     submenu: [],
-    path: "/admin/",
+    path: "/admin/dashboard",
   },
   {
     name: "Customers",
