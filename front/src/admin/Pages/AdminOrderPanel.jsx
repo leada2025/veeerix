@@ -36,10 +36,18 @@ const AdminOrderPanel = () => {
       alert("Update failed");
     }
   };
+const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-8">
-      <h2 className="text-3xl font-semibold text-[#d1383a] mb-6 border-b pb-2">🧾 Admin Order Panel</h2>
+      <h2 className="text-3xl font-semibold text-[#d1383a] mb-6 border-b pb-2"> Admin Order Panel</h2>
 
       {loading ? (
         <p className="text-gray-600">Loading...</p>
@@ -52,6 +60,7 @@ const AdminOrderPanel = () => {
           <table className="min-w-full text-sm text-left text-gray-800">
             <thead className="bg-[#d1383a] text-white">
               <tr>
+                    <th className="px-4 py-3">Date</th>
                 <th className="px-4 py-3">Customer</th>
                 <th className="px-4 py-3">Brand</th>
                 <th className="px-4 py-3">Molecule</th>
@@ -63,6 +72,9 @@ const AdminOrderPanel = () => {
             <tbody className="divide-y divide-gray-200 bg-white">
               {orders.map((order) => (
                 <tr key={order._id} className="hover:bg-gray-50 transition">
+                   <td className="px-2 py-3 text-sm text-gray-600">
+                    {formatDate(order.createdAt)}
+                  </td>
                   <td className="px-4 py-3 text-xs font-mono text-gray-600">{order.customerId.name}</td>
                   <td className="px-4 py-3 font-semibold">{order.brandName}</td>
                   <td className="px-4 py-3">{order.moleculeName}</td>

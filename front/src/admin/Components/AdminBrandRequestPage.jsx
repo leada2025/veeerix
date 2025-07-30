@@ -40,7 +40,7 @@ const AdminBrandRequestPage = () => {
               <th className="px-4 py-3">Custom</th>
               <th className="px-4 py-3">Customer</th>
               <th className="px-4 py-3">Amount</th>
-              <th className="px-4 py-3">Comment</th>
+              <th className="px-4 py-3">Customers Comment</th>
               <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3">Payment</th>
               <th className="px-4 py-3">Actions</th>
@@ -98,7 +98,7 @@ const AdminBrandRequestPage = () => {
                 <td className="px-4 py-2 relative text-sm text-gray-800 space-y-2">
                   {/* Customer Comment with Popup Trigger */}
                   <div>
-                    <span className="font-semibold">Customer:</span>{" "}
+                   
                     {req.customerComment ? (
                       <button
                         onClick={() => setPopupOpenId(req._id)}

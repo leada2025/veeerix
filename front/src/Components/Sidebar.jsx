@@ -35,7 +35,7 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
     { label: "Packing Status", path: "/packing/status", icon: <PackageCheck size={20} /> },
       { label: "Packing History", path: "/packing-history", icon: <PackageCheck size={20} /> },
 
-    { label: "Status", path: "/status", icon: <Info size={20} /> },
+    // { label: "Status", path: "/status", icon: <Info size={20} /> },
     { label: "Distribution", path: "/distribution", icon: <Truck size={20} /> },
   ];
 

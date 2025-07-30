@@ -24,7 +24,7 @@ const RegisteredHistoryPage = () => {
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <h1 className="text-2xl font-bold text-[#d1383a] mb-6">
-        ✅ Registered Trademark History
+         Registered Trademark History
       </h1>
 
       {loading ? (

@@ -60,7 +60,7 @@ const sidebarLinks = [
     name: "Order Management",
     icon: ClipboardList,
     submenu: [
-      { label: "Orders", path: "/admin/orders" },
+      { label: "Customer's Orders", path: "/admin/orders" },
    ,
     ],
   },
@@ -96,26 +96,32 @@ const location = useLocation();
 
         {/* Menu Items */}
         <nav className="flex flex-col space-y-1 px-2">
-          {sidebarLinks.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeMain === item.name;
+         {sidebarLinks.map((item) => {
+  const Icon = item.icon;
+  const isActive = activeMain === item.name;
 
-            return (
-              <button
-                key={item.name}
-                onClick={() => {
-                  setActiveMain(item.name);
-                  if (item.path) navigate(item.path);
-                }}
-                className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-all ${
-                  isActive ? "bg-white text-[#d1383a]" : "hover:bg-white/10"
-                }`}
-              >
-                <Icon size={20} className={isActive ? "text-[#d1383a]" : "text-white"} />
-                {isExpanded && <span className="whitespace-nowrap">{item.name}</span>}
-              </button>
-            );
-          })}
+  return (
+    <button
+      key={item.name}
+      onClick={() => {
+        setActiveMain(item.name);
+
+        if (item.path) {
+          navigate(item.path);
+        } else if (item.submenu?.length > 0) {
+          navigate(item.submenu[0].path); // Fallback to first submenu path
+        }
+      }}
+      className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-all ${
+        isActive ? "bg-white text-[#d1383a]" : "hover:bg-white/10"
+      }`}
+    >
+      <Icon size={20} className={isActive ? "text-[#d1383a]" : "text-white"} />
+      {isExpanded && <span className="whitespace-nowrap">{item.name}</span>}
+    </button>
+  );
+})}
+
         </nav>
       </aside>
 

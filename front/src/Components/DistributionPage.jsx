@@ -338,45 +338,46 @@ const [molecules, setMolecules] = useState([]);
       )}
 
       {/* Modal */}
-      {showCustomerModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white w-full max-w-lg rounded-lg shadow-lg p-6">
-            <h3 className="text-xl font-semibold text-[#d1383a] mb-4">
-              {editingIndex !== null ? "Edit Customer" : "Add Customer"}
-            </h3>
-            <form onSubmit={submitCustomer} className="space-y-4">
-              {["name", "address", "email", "phone", "drugLicense", "gst", "pan"].map((field) => (
-                <div key={field}>
-                  <label className="text-sm text-gray-700 capitalize">{field}</label>
-                  <input
-                    name={field}
-                    value={formData[field]}
-                    onChange={handleCustomerChange}
-                    className="w-full mt-1 px-3 py-2 border rounded-md"
-                    required
-                  />
-                </div>
-              ))}
-
-              <div className="flex justify-end gap-3 mt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowCustomerModal(false)}
-                  className="px-4 py-2 border rounded-md text-gray-600 hover:bg-gray-100"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="bg-[#d1383a] text-white px-4 py-2 rounded hover:bg-[#b73030]"
-                >
-                  Save
-                </button>
-              </div>
-            </form>
+    {showCustomerModal && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div className="bg-white w-full max-w-lg rounded-lg shadow-lg p-6 max-h-[90vh] overflow-y-auto">
+      <h3 className="text-xl font-semibold text-[#d1383a] mb-4">
+        {editingIndex !== null ? "Edit Customer" : "Add Customer"}
+      </h3>
+      <form onSubmit={submitCustomer} className="space-y-4">
+        {["name", "address", "email", "phone", "drugLicense", "gst", "pan"].map((field) => (
+          <div key={field}>
+            <label className="text-sm text-gray-700 capitalize">{field}</label>
+            <input
+              name={field}
+              value={formData[field]}
+              onChange={handleCustomerChange}
+              className="w-full mt-1 px-3 py-2 border rounded-md"
+              required
+            />
           </div>
+        ))}
+
+        <div className="flex justify-end gap-3 mt-4">
+          <button
+            type="button"
+            onClick={() => setShowCustomerModal(false)}
+            className="px-4 py-2 border rounded-md text-gray-600 hover:bg-gray-100"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            className="bg-[#d1383a] text-white px-4 py-2 rounded hover:bg-[#b73030]"
+          >
+            Save
+          </button>
         </div>
-      )}
+      </form>
+    </div>
+  </div>
+)}
+
     </div>
   );
 };

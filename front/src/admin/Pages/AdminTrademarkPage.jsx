@@ -69,7 +69,7 @@ const AdminTrademarkPage = () => {
         Trademark Admin Panel
       </h1>
 
-      <Section title="🕓 Pending Submissions">
+      <Section title=" Pending Submissions">
         {pending.length > 0 ? (
           <SuggestionsTable data={pending} onSelect={setSelected} />
         ) : (
@@ -77,7 +77,7 @@ const AdminTrademarkPage = () => {
         )}
       </Section>
 
-      <Section title="✅ Finalized Suggestions">
+      <Section title="Finalized Suggestions">
         <SuggestionsTable
           data={finalized.filter((item) => item.trackingStatus !== "Registered")}
           isFinalized

@@ -1,7 +1,8 @@
-// src/routes/AdminRoutes.jsx
 import React from "react";
 import { Route } from "react-router-dom";
+import VeerixLoginPage from "../admin/Pages/VeerixLoginPage";
 import AdminLayout from "../admin/Components/AdminLayout";
+import AdminDashboard from "../admin/Pages/AdminDashboard";
 import CustomerManagement from "../admin/Pages/CustomerManagement";
 import AdminBrandRequestPage from "../admin/Components/AdminBrandRequestPage";
 import AdminTrademarkPage from "../admin/Pages/AdminTrademarkPage";
@@ -11,23 +12,51 @@ import AdminAvailableDesignsPage from "../admin/Components/AdminAvailableDesigns
 import AdminTracklineUpdate from "../admin/Components/AdminPackingTrackline";
 import AdminMoleculePanel from "../admin/Components/AdminMoleculePanel";
 import AdminOrderPanel from "../admin/Pages/AdminOrderPanel";
-import AdminDashboard from "../admin/Pages/AdminDashboard";
-
 
 const AdminRoutes = () => (
   <>
-    <Route path="/admin" element={<AdminLayout />}>
-    <Route index element={<AdminDashboard />} /> 
-      <Route path="customer" element={<CustomerManagement />} />
-      <Route path="molecule" element={<AdminBrandRequestPage />} />
-      <Route path="trademark" element={<AdminTrademarkPage />} />
-       <Route path="history" element={<RegisteredHistoryPage />} />
-       <Route path="packing" element={<AdminPackingPage/>} />
-      <Route path="designs" element={<AdminAvailableDesignsPage/>} />
-       <Route path="packingtrack" element={<AdminTracklineUpdate/>} />
-        <Route path="addmolecule" element={<AdminMoleculePanel/>} />
-        <Route path="orders" element={<AdminOrderPanel/>} />
-         <Route path="dashboard" element={<AdminDashboard/>} />
+    {/* ✅ Show login at /admin */}
+    <Route path="/admin" element={<VeerixLoginPage />} />
+
+    {/* ✅ All other admin pages go under /admin/* and use AdminLayout */}
+    <Route path="/admin/dashboard" element={<AdminLayout />}>
+      <Route index element={<AdminDashboard />} />
+    </Route>
+
+    <Route path="/admin/customer" element={<AdminLayout />}>
+      <Route index element={<CustomerManagement />} />
+    </Route>
+
+    <Route path="/admin/molecule" element={<AdminLayout />}>
+      <Route index element={<AdminBrandRequestPage />} />
+    </Route>
+
+    <Route path="/admin/trademark" element={<AdminLayout />}>
+      <Route index element={<AdminTrademarkPage />} />
+    </Route>
+
+    <Route path="/admin/history" element={<AdminLayout />}>
+      <Route index element={<RegisteredHistoryPage />} />
+    </Route>
+
+    <Route path="/admin/packing" element={<AdminLayout />}>
+      <Route index element={<AdminPackingPage />} />
+    </Route>
+
+    <Route path="/admin/designs" element={<AdminLayout />}>
+      <Route index element={<AdminAvailableDesignsPage />} />
+    </Route>
+
+    <Route path="/admin/packingtrack" element={<AdminLayout />}>
+      <Route index element={<AdminTracklineUpdate />} />
+    </Route>
+
+    <Route path="/admin/addmolecule" element={<AdminLayout />}>
+      <Route index element={<AdminMoleculePanel />} />
+    </Route>
+
+    <Route path="/admin/orders" element={<AdminLayout />}>
+      <Route index element={<AdminOrderPanel />} />
     </Route>
   </>
 );

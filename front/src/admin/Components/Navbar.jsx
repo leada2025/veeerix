@@ -1,13 +1,14 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { FiSettings, FiLogOut } from "react-icons/fi";
+import { useNavigate } from "react-router-dom";
 
-export default function AdminNavbar({ onLogout, navigate }) {
+export default function AdminNavbar() {
   const [settingsDropdownOpen, setSettingsDropdownOpen] = useState(false);
   const [role, setRole] = useState(null);
   const settingsRef = useRef(null);
   const location = useLocation();
-
+ const navigate = useNavigate();
   useEffect(() => {
     const storedRole = localStorage.getItem("role");
     setRole(storedRole?.toLowerCase() || null);
@@ -44,7 +45,10 @@ export default function AdminNavbar({ onLogout, navigate }) {
 
     return "Dashboard";
   };
-
+  const handleLogout = () => {
+    localStorage.removeItem("token"); // or clear context
+    navigate("/"); // Go to VeerixOrdersLanding
+  };
   return (
     <header className="h-[80px] bg-[#d1383a] border-b border-[#1C2E4A] flex items-center justify-between px-6 sticky top-0 z-10 shadow-sm">
       {/* Page Title */}
@@ -109,7 +113,7 @@ export default function AdminNavbar({ onLogout, navigate }) {
 
         {/* Logout Button */}
         <button
-          onClick={onLogout}
+          onClick={handleLogout}
           className="flex items-center gap-1 text-sm hover:text-red-500 transition"
           title="Logout"
         >
