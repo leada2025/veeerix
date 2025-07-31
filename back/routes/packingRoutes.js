@@ -337,5 +337,28 @@ router.patch("/:id/step", async (req, res) => {
   }
 });
 
+// DELETE /packing/designs/:id — Delete an available packing design
+router.delete("/designs/:id", async (req, res) => {
+  try {
+    const design = await AvailablePackingDesign.findByIdAndDelete(req.params.id);
+
+    if (!design) {
+      return res.status(404).json({ message: "Design not found" });
+    }
+
+    // Also delete the image file from the server
+    const filePath = path.join(__dirname, "..", design.imageUrl);
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+
+    res.json({ message: "Design deleted successfully" });
+  } catch (err) {
+    console.error("Error deleting design:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+
 
 module.exports = router;

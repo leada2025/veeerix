@@ -51,32 +51,43 @@ router.get("/options/:customerId", async (req, res) => {
   try {
     const { customerId } = req.params;
 
-    // Find latest registered brand
-    const registeredBrands = await TrademarkSuggestion.find({
-  customerId,
-  trackingStatus: "Registered",
-}).sort({ updatedAt: -1 });
+    const STAGES = [
+      "New TM Application",
+      "Send to Vienna Codification",
+      "Formalities Check Pass",
+      "Marked for Exam",
+      "Examination Report Issued",
+      "Accepted and Advertised",
+      "Registered",
+    ];
 
-const paidMolecules = await BrandRequest.find({
-  customerId,
-  status: "Paid", // or "Approved" if you're allowing un-paid access
-}).sort({ updatedAt: -1 });
+    const minStageIndex = STAGES.indexOf("New TM Application");
 
-if (!registeredBrands.length || !paidMolecules.length) {
-  return res.status(404).json({ error: "No registered brands or paid molecules found" });
-}
+    const allBrands = await TrademarkSuggestion.find({ customerId });
+    const usableBrands = allBrands.filter((b) => {
+      const currentIndex = STAGES.indexOf(b.trackingStatus);
+      return currentIndex >= minStageIndex;
+    });
 
-// Extract only the needed fields
-const brandNames = registeredBrands.map(b => b.selectedName);
-const moleculeNames = paidMolecules.map(m => m.moleculeName);
+    const paidMolecules = await BrandRequest.find({
+      customerId,
+      status: "Paid",
+    }).sort({ updatedAt: -1 });
 
-res.json({ brandNames, moleculeNames });
+    if (!usableBrands.length || !paidMolecules.length) {
+      return res.status(404).json({ error: "No valid brands or paid molecules found" });
+    }
 
+    const brandNames = usableBrands.map((b) => b.selectedName);
+    const moleculeNames = paidMolecules.map((m) => m.moleculeName);
+
+    res.json({ brandNames, moleculeNames });
   } catch (error) {
     console.error("Error fetching brand/molecule options:", error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
+
 
 
 // PUT - update tracking step (admin updates progress)

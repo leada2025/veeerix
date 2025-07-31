@@ -43,6 +43,19 @@ const AdminAvailableDesignsPage = () => {
     }
   };
 
+  const handleDelete = async (id) => {
+  if (!window.confirm("Are you sure you want to delete this design?")) return;
+
+  try {
+    await axios.delete(`/packing/designs/${id}`);
+    fetchDesigns(); // Refresh list
+  } catch (err) {
+    console.error("Delete failed:", err);
+    alert("Failed to delete design");
+  }
+};
+
+
   return (
     <div className="max-w-4xl mx-auto mt-10 p-6 bg-white shadow rounded">
       <h2 className="text-xl font-bold mb-6 text-[#d1383a]">Upload Available Packing Designs</h2>
@@ -68,17 +81,25 @@ const AdminAvailableDesignsPage = () => {
 
       <h3 className="font-semibold mb-4">Existing Designs</h3>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {designs.map((design) => (
-          <div key={design._id} className="border p-2 rounded text-center">
-          <img
- src={`${BASE_URL}${design.imageUrl}`}  // replace with production URL after deploy
-  alt={design.label || "Design"}
-  className="w-full h-32 object-cover rounded"
-/>
+    {designs.map((design) => (
+  <div key={design._id} className="border p-2 rounded text-center relative">
+    <img
+      src={`${BASE_URL}${design.imageUrl}`}
+      alt={design.label || "Design"}
+      className="w-full h-32 object-cover rounded"
+    />
+    <p className="mt-2 text-sm text-gray-700">{design.label || "No label"}</p>
+ <button
+  onClick={() => handleDelete(design._id)}
+  className="absolute top-2 right-2 bg-red-100 text-red-600 hover:bg-red-200 hover:text-red-800 rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold shadow-sm"
+  title="Delete design"
+>
+  ×
+</button>
 
-            <p className="mt-2 text-sm text-gray-700">{design.label || "No label"}</p>
-          </div>
-        ))}
+  </div>
+))}
+
       </div>
     </div>
   );

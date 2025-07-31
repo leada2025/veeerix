@@ -47,7 +47,8 @@ const fetchActiveSubmission = async () => {
   </p>
 ) : (
  submission
-  .filter((s) => !clearedIds.includes(s._id))
+ .filter((s) => !clearedIds.includes(s._id) && !s.isDirect)
+
   .map((s) => (
     <div key={s._id} className="mb-6 p-4 border rounded-md bg-gray-50 shadow-sm">
       <h3 className="text-lg font-semibold mb-2" style={{ color: primaryColor }}>

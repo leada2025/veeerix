@@ -137,6 +137,11 @@ setRows(finalRows);
     setRows(updated);
   };
 
+  const submittedRequestCount = () => {
+  return rows.filter((r) => r._id).length;
+};
+
+
  const handleRequestQuote = async (index) => {
   const row = rows[index];
   const customerId = getCustomerId();
@@ -154,7 +159,10 @@ setRows(finalRows);
     alert("This molecule is already requested.");
     return;
   }
-
+  if (submittedRequestCount() >= 5) {
+    alert("You can only request up to 5 quotes.");
+    return;
+  }
   try {
     setLoadingIndexes((prev) => [...prev, index]);
 

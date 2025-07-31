@@ -40,6 +40,8 @@ const RegisteredHistoryPage = () => {
                 <th className="p-3">Final Name</th>
                 <th className="p-3">Remarks</th>
                 <th className="p-3">Registered On</th>
+                <th className="p-3">Source</th>
+
               </tr>
             </thead>
             <tbody>
@@ -59,6 +61,14 @@ const RegisteredHistoryPage = () => {
     timeStyle: "short",
   })}
 </td>
+<td className="p-3">
+  {item.isDirect ? (
+    <span className="text-blue-600 font-semibold">Customer Direct Entry</span>
+  ) : (
+    <span className="text-gray-700">Platform Processed</span>
+  )}
+</td>
+
 
                 </tr>
               ))}

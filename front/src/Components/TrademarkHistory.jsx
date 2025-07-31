@@ -16,7 +16,11 @@ const TrademarkHistory = () => {
   useEffect(() => {
     if (customerId) {
       axios.get(`/api/trademark/${customerId}`).then((res) => {
-        setSubmissions(res.data || []);
+        const filtered = (res.data || []).filter(
+  (s) => s.selectedName && s.suggestions.length > 1
+);
+setSubmissions(filtered);
+
         setLoading(false);
       }).catch((err) => {
         console.error("Failed to fetch history", err);

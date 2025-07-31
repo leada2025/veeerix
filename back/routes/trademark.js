@@ -16,6 +16,30 @@ router.post("/", async (req, res) => {
   await suggestionDoc.save();
   res.status(201).json(suggestionDoc);
 });
+// NEW: Customer adds a direct finalized trademark
+router.post("/direct", async (req, res) => {
+  const { customerId, name } = req.body;
+
+  if (!customerId || !name) {
+    return res.status(400).json({ error: "Missing customerId or name." });
+  }
+
+  try {
+  const directTrademark = new Trademark({
+  customerId,
+  suggestions: [{ name, status: "Available" }],
+  selectedName: name,
+  trackingStatus: "Registered", // ✅ Final stage directly
+  isDirect: true,               // ✅ Skip admin review
+});
+await directTrademark.save();
+
+    res.status(201).json(directTrademark);
+  } catch (err) {
+    console.error("Error adding direct trademark:", err);
+    res.status(500).json({ error: "Server error." });
+  }
+});
 
 // 2. Admin fetches all suggestions
 router.get("/", async (req, res) => {

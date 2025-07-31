@@ -24,9 +24,11 @@ const TrademarkSuggestionSchema = new mongoose.Schema(
     selectedName: { type: String, default: null },
 
     trackingStatus: { type: String, default: "Pending Review" },
+
+    isDirect: { type: Boolean, default: false }, // ✅ Add this line
   },
   {
-    timestamps: true, // ✅ Correct placement of timestamps
+    timestamps: true,
   }
 );
 

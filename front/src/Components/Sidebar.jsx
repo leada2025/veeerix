@@ -29,7 +29,7 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
     { label: "Trademark", path: "/trademark", icon: <FileText size={20} /> },
      { label: "Trademark Status", path: "/trademarks/track", icon: <FileText size={20} /> },
 { label: "Trademark History", path: "/trademarkh/history", icon: <FileText size={20} /> },
-
+{ label: "Trademark Records", path: "/admin/my-registered", icon: <FileText size={20} /> },
     { label: "Place Order", path: "/place-order", icon: <ShoppingCart size={20} /> },
     { label: "Packing Approval", path: "/packing-approval", icon: <PackageCheck size={20} /> },
     { label: "Packing Status", path: "/packing/status", icon: <PackageCheck size={20} /> },
@@ -44,13 +44,14 @@ const visibleNavItems = navItems.filter((item) => {
   return (
     item.label === "Trademark" ||
     item.label === "Trademark Status" ||
-    item.label === "Trademark History"
+    item.label === "Trademark History"||
+    item.label === "Trademark Records"
   );
 
 
   } else {
     // For Veerix, hide Trademark-related pages
-    return item.label !== "Trademark" && item.label !== "Trademark Status"  && item.label !== "Trademark History";
+    return item.label !== "Trademark" && item.label !== "Trademark Status"  && item.label !== "Trademark History" && item.label !== "Trademark Records";
   }
 });
 
@@ -65,7 +66,7 @@ const visibleNavItems = navItems.filter((item) => {
       {/* Logo Section */}
       <div className="flex items-center justify-between px-4 py-4 border-b border-gray-300">
         {collapsed ? (
-          <span className={`text-xl font-bold ${isFishman ? "text-white" : "text-black"}`}>
+          <span className={`text-xl font-bold ${isFishman ? "text-white" : "text-[#d1383a]"}`}>
             {isFishman ? "FB" : "VB"}
           </span>
         ) : (
