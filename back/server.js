@@ -10,12 +10,15 @@ const moleculeRoutes = require("./routes/molecule");
 const cors = require("cors");
 const orderRoutes = require("./routes/orderRoutes");
 const distributionRoutes = require("./routes/distribution");
-
+const path = require("path");
 const app = express();
+
 app.use(cors({
   origin: ["http://localhost:5173", "https://veeerix-1.onrender.com"],
   credentials: true,
 }));
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
 
 app.use(express.json());
 

@@ -35,18 +35,15 @@ router.post("/designs/upload", upload.single("designFile"), async (req, res) => 
   if (!file) return res.status(400).json({ message: "No file uploaded" });
 
   try {
-    const filename = `${Date.now()}_${file.originalname}`;
-    const filepath = path.join(uploadDir, filename);
-    fs.writeFileSync(filepath, file.buffer);
-
     const newDesign = new AvailablePackingDesign({
-      imageUrl: `/uploads/${filename}`,
-      label: req.body.label || "", // Optional
+      imageUrl: `/uploads/${file.filename}`, // ✅ Use file.filename (already saved by multer)
+      label: req.body.label || "",
     });
 
     await newDesign.save();
     res.json({ message: "Design uploaded", data: newDesign });
   } catch (err) {
+    console.error("Upload error:", err);
     res.status(500).json({ message: "Upload error", error: err.message });
   }
 });
@@ -117,19 +114,13 @@ const design = await PackingDesign.findOneAndUpdate(
 });
 
 router.post("/submit", async (req, res) => {
-  const { customerId, selectedDesignId } = req.body;
+  const { customerId, selectedDesignIds } = req.body;
 
   try {
-    const latest = await PackingDesign.findOne({ customerId }).sort({ createdAt: -1 });
-
-    // Block submission if there's already one in progress
- 
-
     const newEntry = new PackingDesign({
       customerId,
-      selectedDesignId,
+      selectedDesignIds,
       submitted: true,
-      trackingStep: 0, // New cycle starts from step 0
     });
 
     await newEntry.save();
@@ -140,10 +131,121 @@ router.post("/submit", async (req, res) => {
 });
 
 
+
+
+router.post("/send-edits/:designId", upload.array("files"), async (req, res) => {
+  try {
+    const designId = req.params.designId;
+
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ message: "No files uploaded" });
+    }
+
+    const savedFiles = req.files.map((file) => ({
+      url: `/uploads/${file.filename}`,
+      type: file.mimetype.includes("pdf") ? "pdf" : "image",
+    }));
+
+    const updated = await PackingDesign.findByIdAndUpdate(
+      designId,
+      {
+        $set: {
+          adminEditedDesigns: savedFiles,
+          status: "Sent for Customer Approval",
+        },
+        $push: {
+          history: { step: "Admin uploaded edited versions" },
+        },
+      },
+      { new: true }
+    );
+
+    res.json(updated);
+  } catch (err) {
+    console.error("Error uploading edited designs:", err);
+    res.status(500).json({ message: "Upload failed", error: err.message });
+  }
+});
+
+router.post("/final-approve", async (req, res) => {
+  const { designId } = req.body;
+
+  try {
+    const updated = await PackingDesign.findByIdAndUpdate(
+      designId,
+      {
+        status: "Approved",
+        trackingStep: 0,
+        $push: { history: { step: "Customer approved final artwork" } },
+      },
+      { new: true }
+    );
+
+    res.json(updated);
+  } catch (err) {
+    res.status(500).json({ message: "Final approval failed", error: err.message });
+  }
+});
+
+
+router.post("/approve-edited", async (req, res) => {
+  const { designId, selectedDesignId } = req.body;
+
+  console.log("Incoming approval request:", req.body); // Add this!
+
+  try {
+    const updated = await PackingDesign.findByIdAndUpdate(
+      designId,
+      {
+        selectedFinalDesign: selectedDesignId,
+        status: "Final Artwork Pending",
+        $push: {
+          history: { step: "Customer approved an edited version" },
+        },
+      },
+      { new: true }
+    );
+
+    res.json(updated);
+  } catch (err) {
+    console.error("Approval failed:", err); // Print full error
+    res.status(500).json({ message: "Approval failed", error: err.message });
+  }
+});
+
+
+router.post("/final-artwork-upload/:designId", upload.single("file"), async (req, res) => {
+  const { designId } = req.params;
+  const file = req.file;
+
+  if (!file) return res.status(400).json({ message: "No file uploaded" });
+
+  try {
+    const filePath = `uploads/${file.filename}`; // ✅ Now this will be defined
+    const type = file.mimetype.includes("pdf") ? "pdf" : "image";
+
+    const updated = await PackingDesign.findByIdAndUpdate(
+      designId,
+      {
+        finalArtworkUrl: filePath,
+        finalArtworkType: type,
+        status: "Sent for Customer Approval",
+        $push: { history: { step: "Admin uploaded final artwork" } },
+      },
+      { new: true }
+    );
+
+    res.json({ message: "Final artwork uploaded", design: updated });
+  } catch (err) {
+    res.status(500).json({ message: "Upload error", error: err.message });
+  }
+});
+
+
 // GET /packing/submitted — Admin fetches all submitted designs
 router.get("/submitted", async (req, res) => {
   try {
-    const mode = req.query.mode || "pending"; // either "pending" or "tracking"
+    const mode = req.query.mode || "pending"; // "pending" or "tracking"
     let query = {};
 
     if (mode === "pending") {
@@ -151,23 +253,30 @@ router.get("/submitted", async (req, res) => {
         submitted: true,
         $or: [
           { finalDesignUrl: { $exists: false } },
-          { status: "Rejected" } // ✅ Include rejected entries too
+          { status: "Rejected" } // Include rejected entries for pending mode
         ]
       };
     } else if (mode === "tracking") {
       query = {
         submitted: true,
-        finalDesignUrl: { $exists: true },
-        trackingStep: { $lt: 5 },
-        status: { $ne: "Rejected" } // ✅ Optional: skip rejected from tracking
+        trackingStep: { $gte: 0 }, // ✅ Include all trackable steps
+        status: { $ne: "Rejected" },
+        $or: [
+          { finalDesignUrl: { $exists: true } },
+          { finalArtworkUrl: { $exists: true } } // ✅ Support finalArtworkUrl too
+        ]
       };
     }
 
     const submissions = await PackingDesign.find(query)
       .populate("customerId", "name email")
+      .populate("selectedDesignIds", "imageUrl")
+      .populate("selectedFinalDesign", "imageUrl")
+      .sort({ updatedAt: -1 }) // ✅ Sort by recent activity
       .lean();
 
-    const designIds = submissions.map((s) => s.selectedDesignId);
+    // Optional: fallback for designId -> design mapping (if selectedDesignId is used)
+    const designIds = submissions.map((s) => s.selectedDesignId).filter(Boolean);
     const designs = await AvailablePackingDesign.find({ _id: { $in: designIds } }).lean();
 
     const designsMap = {};
@@ -177,7 +286,7 @@ router.get("/submitted", async (req, res) => {
 
     const enrichedSubmissions = submissions.map((s) => ({
       ...s,
-      customerName: s.customerId.name || s.customerId.email,
+      customerName: s.customerId?.name || s.customerId?.email || "Unknown",
       selectedDesign: designsMap[s.selectedDesignId?.toString()],
     }));
 
@@ -187,6 +296,9 @@ router.get("/submitted", async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
+
+
+
 
 
 router.get("/:customerId", async (req, res) => {
@@ -201,6 +313,17 @@ router.get("/:customerId", async (req, res) => {
   } catch (err) {
     console.error("Fetch error:", err);
     res.status(500).json({ message: "Server error" });
+  }
+});
+
+router.get("/history/:customerId", async (req, res) => {
+  try {
+    const history = await PackingDesign.find({ customerId: req.params.customerId })
+      .populate("selectedDesignIds")
+      .sort({ createdAt: -1 });
+    res.json(history);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch history", error: err.message });
   }
 });
 
@@ -241,13 +364,14 @@ router.post("/reject", async (req, res) => {
       return res.status(404).json({ message: "No design found to reject" });
     }
 
-    if (!design.finalDesignUrl) {
-      return res.status(400).json({ message: "No final design exists to reject" });
+    if (!design.finalArtworkUrl) {
+      return res.status(400).json({ message: "No final artwork exists to reject" });
     }
 
-    design.status = "Rejected";
+    design.status = "Final Artwork Pending"; // allow admin to re-upload
     design.rejectionReason = reason;
-    design.finalDesignUrl = null;
+    design.finalArtworkUrl = undefined; // ✅ best way to clear field
+    design.finalArtworkType = undefined;
     design.adminUploaded = false;
     design.trackingStep = 0;
 
@@ -255,10 +379,32 @@ router.post("/reject", async (req, res) => {
 
     res.json({ message: "Design rejected and reset", design });
   } catch (err) {
-    console.error("Reject error:", err);
-    res.status(500).json({ message: "Server error" });
+    console.error("Reject error:", err.message, err.stack);
+    res.status(500).json({ message: "Server error", error: err.message });
   }
 });
+
+
+
+// Cancel pending submission
+router.post("/cancel", async (req, res) => {
+  const { designId } = req.body;
+  try {
+    const entry = await PackingDesign.findById(designId);
+    if (!entry) return res.status(404).json({ message: "Not found" });
+
+    if (entry.status !== "Pending") {
+      return res.status(400).json({ message: "Only pending submissions can be canceled" });
+    }
+
+    await PackingDesign.findByIdAndDelete(designId);
+    res.status(200).json({ message: "Cancelled successfully" });
+  } catch (err) {
+    res.status(500).json({ message: "Server error", error: err });
+  }
+});
+
+
 
 
 
