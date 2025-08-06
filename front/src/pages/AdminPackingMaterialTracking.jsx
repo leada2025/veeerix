@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import axios from "../api/Axios";
 
 const STATUS_STAGES = [
   "Sent to Printer",
@@ -8,78 +9,100 @@ const STATUS_STAGES = [
   "Received in Factory",
 ];
 
-// Sample static data
-const staticEntries = [
-  {
-    _id: "1",
-    customerName: "ACME Corp",
-    productName: "Box Pack A",
-    currentStatus: "Packing Material Dispatched",
-  },
-  {
-    _id: "2",
-    customerName: "Beta Ltd",
-    productName: "Bottle Label",
-    currentStatus: "In Transit",
-  },
-  {
-    _id: "3",
-    customerName: "Gamma Pvt",
-    productName: "Pouch Film",
-    currentStatus: "Sent to Printer",
-  },
-];
+const PackingStatusTracker = () => {
+  const [entries, setEntries] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-const StatusTracker = () => {
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const res = await axios.get("/packing/post-print-tracking");
+        setEntries(res.data);
+      } catch (err) {
+        console.error("Error fetching post-printing data", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
   return (
-    <div className="max-w-5xl mx-auto mt-10 p-6 bg-white rounded shadow">
-      <h2 className="text-2xl font-semibold text-[#d1383a] mb-6">
-        Packing Status Tracker
+    <div className="max-w-4xl mx-auto mt-10 p-6 bg-white rounded-lg shadow-md">
+      <h2 className="text-3xl font-bold text-[#d1383a] mb-6">
+        Your Packing Design Status
       </h2>
 
-      {staticEntries.map((entry) => (
-        <div
-          key={entry._id}
-          className="mb-8 border p-4 rounded shadow-sm bg-gray-50"
-        >
-          <p className="text-sm font-medium text-gray-700 mb-2">
-            Customer: {entry.customerName}
-          </p>
-
-          <p className="text-sm mb-2 text-gray-600">
-            Product: {entry.productName}
-          </p>
-
-          <div className="flex flex-col gap-3">
-            {STATUS_STAGES.map((stage, index) => {
-              const isDone =
-                STATUS_STAGES.indexOf(entry.currentStatus) >= index;
-              return (
-                <div key={index} className="flex items-center gap-3">
-                  <div
-                    className={`w-4 h-4 rounded-full border-2 ${
-                      isDone
-                        ? "bg-[#d1383a] border-[#d1383a]"
-                        : "bg-white border-gray-400"
-                    }`}
-                  ></div>
-                  <span
-                    className={`text-sm ${
-                      isDone
-                        ? "text-[#d1383a] font-semibold"
-                        : "text-gray-500"
-                    }`}
-                  >
-                    {stage}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+      {loading ? (
+        <p className="text-gray-500">Loading status...</p>
+      ) : entries.length === 0 ? (
+        <div className="text-center text-gray-500 mt-10">
+          <p>No designs are currently in tracking.</p>
+          <p className="text-sm mt-2">We’ll update your tracking status here once your design is sent for printing.</p>
         </div>
-      ))}
+      ) : (
+        entries.map((entry) => {
+          const currentStep = entry.postPrintStep ?? 0;
+
+          return (
+            <div
+              key={entry._id}
+              className="mb-10 border rounded-md p-5 bg-gray-50 shadow-sm"
+            >
+              <p className="text-lg font-medium text-gray-800 mb-4">
+                Design: <span className="text-[#d1383a]">{entry.designName || entry.productName}</span>
+              </p>
+
+              <div className="ml-3">
+                {STATUS_STAGES.map((stage, index) => {
+                  const isDone = currentStep >= index;
+                  const isCurrent = currentStep === index;
+                  const isFinal = index === STATUS_STAGES.length - 1;
+
+                  return (
+                    <div key={index} className="flex items-center gap-3 relative mb-3">
+                      {/* Vertical Line */}
+                      {index < STATUS_STAGES.length - 1 && (
+                        <div
+                          className={`absolute left-2 top-6 h-5 w-0.5 ${
+                            isDone ? "bg-[#d1383a]" : "bg-gray-300"
+                          }`}
+                          style={{ zIndex: -1 }}
+                        />
+                      )}
+
+                      {/* Status Circle */}
+                      <div
+                        className={`w-5 h-5 flex items-center justify-center rounded-full border-2 ${
+                          isDone
+                            ? "bg-[#d1383a] border-[#d1383a] text-white"
+                            : "bg-white border-gray-400 text-transparent"
+                        }`}
+                      >
+                        {isFinal && isDone ? "✓" : "•"}
+                      </div>
+
+                      {/* Status Label */}
+                      <span
+                        className={`text-sm ${
+                          isDone
+                            ? "text-[#d1383a] font-semibold"
+                            : "text-gray-500"
+                        } ${isCurrent ? "underline" : ""}`}
+                      >
+                        {stage}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })
+      )}
     </div>
   );
 };
 
-export default StatusTracker;
+export default PackingStatusTracker;

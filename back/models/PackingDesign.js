@@ -26,6 +26,7 @@ finalArtworkType: { type: String, enum: ["image", "pdf"] },
 
     rejectionReason: String,
     trackingStep: { type: Number, default: 0 },
+       postPrintStep: { type: Number, default: null },
     history: [
       {
         step: String,

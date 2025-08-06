@@ -37,20 +37,31 @@ const PackingStatusPage = () => {
 
   return (
     <div className="max-w-3xl mx-auto mt-10 p-6 bg-white shadow rounded">
-      <h2 className="text-xl font-bold mb-6 text-[#d1383a]">Packing Design Progress</h2>
+      <h2 className="text-xl font-bold mb-6 text-[#d1383a]">
+        Packing Design Progress
+      </h2>
+
       {loading ? (
         <p>Loading...</p>
       ) : trackings.length > 0 ? (
-        trackings.map((entry, index) => (
-          <div key={entry._id} className="mb-8">
-            <h3 className="font-semibold text-gray-700 mb-2">
-              Cycle {index + 1} – Submitted on {new Date(entry.createdAt).toLocaleDateString()}
-            </h3>
-            <PackingApprovalTracker currentStep={stepLabels[entry.trackingStep ?? 0]} />
-          </div>
-        ))
+        trackings.map((entry, index) => {
+          const currentStep =
+            stepLabels[entry.trackingStep] ?? stepLabels[0];
+
+          return (
+            <div key={entry._id} className="mb-10">
+              <h3 className="font-semibold text-gray-700 mb-2">
+                Cycle {index + 1} – Submitted on{" "}
+                {new Date(entry.createdAt).toLocaleDateString()}
+              </h3>
+              <PackingApprovalTracker currentStep={currentStep} />
+            </div>
+          );
+        })
       ) : (
-        <p className="text-gray-600">No active tracking entries found.</p>
+        <p className="text-gray-600">
+          No active tracking entries found.
+        </p>
       )}
     </div>
   );

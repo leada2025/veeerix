@@ -232,14 +232,16 @@ const AdminPackingPage = () => {
               )}
 
               {/* 5. Rejection Info */}
-              {selectedSubmission.status === "Final Artwork Pending" && (
-                <div className="mt-4">
-                  <p className="text-sm text-red-600 font-medium">
-                    ❌ Rejected by Customer
-                  </p>
-                  <p className="text-sm italic">Reason: {selectedSubmission.rejectionReason}</p>
-                </div>
-              )}
+             {selectedSubmission.status === "Final Artwork Pending" &&
+  selectedSubmission.rejectionReason && (
+    <div className="mt-4">
+      <p className="text-sm text-red-600 font-medium">
+        ❌ Rejected by Customer
+      </p>
+      <p className="text-sm italic">Reason: {selectedSubmission.rejectionReason}</p>
+    </div>
+)}
+
             </div>
           )}
         </div>

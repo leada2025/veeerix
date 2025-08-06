@@ -11,11 +11,11 @@ if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
 
 router.get("/tracking/:customerId", async (req, res) => {
   try {
-    const entries = await PackingDesign.find({
-      customerId: req.params.customerId,
-      status: "Approved",
-      trackingStep: { $gte: 0 },
-    }).sort({ updatedAt: -1 });
+   const entries = await PackingDesign.find({
+  customerId: req.params.customerId,
+  status: "Approved",
+  trackingStep: { $gte: 0 },
+});
 
     if (!entries.length) {
       return res.status(404).json({ message: "No approved designs with tracking found" });
@@ -28,6 +28,23 @@ router.get("/tracking/:customerId", async (req, res) => {
   }
 });
 
+// GET /packing/post-print-tracking
+router.get("/post-print-tracking", async (req, res) => {
+  try {
+   const entries = await PackingDesign.find({
+  status: "Approved",
+  postPrintStep: { $gte: 0 },  // <-- use postPrintStep instead of trackingStep
+})
+.populate("customerId", "name")
+.sort({ updatedAt: -1 });
+
+
+    res.status(200).json(entries);
+  } catch (err) {
+    console.error("Error fetching post-print tracking entries:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
 
 
 router.post("/designs/upload", upload.single("designFile"), async (req, res) => {
@@ -425,25 +442,46 @@ router.put("/final-upload", async (req, res) => {
 
 // PUT /packing/track/:id — Admin updates tracking step
 router.put("/track/:id", async (req, res) => {
-  const { stepLabel, stepIndex } = req.body;
+  const { stepLabel, stepIndex, isPostPrint = false } = req.body;
+
+  const update = {
+    $push: {
+      history: {
+        step: stepLabel,
+        date: new Date(),
+      },
+    },
+  };
+
+  if (isPostPrint) {
+    update.postPrintStep = stepIndex;
+
+    // Auto-resume main flow after post-print ends
+    if (stepIndex === 4) {
+      update.trackingStep = 3; // "In Progress"
+    }
+  } else {
+    update.trackingStep = stepIndex;
+
+    // Automatically reset postPrintStep if Sent for Printing
+    if (stepIndex === 2) {
+      update.postPrintStep = 0; // start post-print
+    }
+  }
+
   try {
     const design = await PackingDesign.findByIdAndUpdate(
       req.params.id,
-      {
-        trackingStep: stepIndex,
-        $push: {
-          history: {
-            step: stepLabel,
-          },
-        },
-      },
+      update,
       { new: true }
     );
     res.json(design);
   } catch (err) {
+    console.error("Error updating step:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
+
 
 router.get("/history/:customerId", async (req, res) => {
   try {
@@ -466,7 +504,7 @@ router.patch("/:id/step", async (req, res) => {
       {
         trackingStep: step,
         $push: {
-          history: { step: `Step changed to ${step}` }, // optional
+          history: { step: `Step changed to ${step}` },
         },
       },
       { new: true }
@@ -479,6 +517,38 @@ router.patch("/:id/step", async (req, res) => {
     res.status(200).json(updated);
   } catch (err) {
     console.error("Error updating tracking step:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+router.patch("/:id/post-print-step", async (req, res) => {
+  try {
+    const { step } = req.body;
+
+    const updated = await PackingDesign.findByIdAndUpdate(
+      req.params.id,
+      {
+        postPrintStep: step,
+        $push: {
+          history: { step: `Post-Print Step changed to ${step}` },
+        },
+      },
+      { new: true }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ message: "Packing design not found" });
+    }
+
+    // Auto-transition logic
+    // if (step === 4) {
+    //   updated.trackingStep = 3;
+    //   updated.postPrintStep = null; // Optional cleanup
+    //   await updated.save();
+    // }
+
+    res.status(200).json(updated);
+  } catch (err) {
+    console.error("Error updating post-print step:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
