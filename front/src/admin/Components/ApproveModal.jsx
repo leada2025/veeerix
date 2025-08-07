@@ -28,7 +28,7 @@ const ApproveModal = ({ suggestion, onClose, onApprove }) => {
   };
 
   if (!suggestion || !Array.isArray(suggestion.suggestions)) return null;
-const isAlreadyApproved = suggestion?.suggestedToCustomer?.length > 0;
+  const isAlreadyApproved = suggestion?.suggestedToCustomer?.length > 0;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 bg-opacity-40">
@@ -43,15 +43,15 @@ const isAlreadyApproved = suggestion?.suggestedToCustomer?.length > 0;
               key={idx}
               className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded cursor-pointer"
             >
-            <input
-  type="checkbox"
-  checked={approvedNames.includes(sug.name)}
-  onChange={() => toggleSelect(sug.name)}
-  disabled={
-    isAlreadyApproved || (!approvedNames.includes(sug.name) && approvedNames.length >= 5)
-  }
-/>
-
+              <input
+                type="checkbox"
+                checked={approvedNames.includes(sug.name)}
+                onChange={() => toggleSelect(sug.name)}
+                disabled={
+                  isAlreadyApproved ||
+                  (!approvedNames.includes(sug.name) && approvedNames.length >= 5)
+                }
+              />
               <span className="text-sm">
                 {sug.name}{" "}
                 <span className="text-xs text-gray-500">({sug.status})</span>
@@ -74,16 +74,17 @@ const isAlreadyApproved = suggestion?.suggestedToCustomer?.length > 0;
           >
             Cancel
           </button>
-         <button
-  onClick={handleApprove}
-  disabled={isAlreadyApproved}
-  className={`px-4 py-2 ${
-    isAlreadyApproved ? "bg-gray-300 cursor-not-allowed" : "bg-[#d1383a] hover:bg-[#b93032]"
-  } text-white rounded font-medium text-sm`}
->
-  {isAlreadyApproved ? "Already Approved" : "Approve Selected"}
-</button>
-
+          <button
+            onClick={handleApprove}
+            disabled={isAlreadyApproved}
+            className={`px-4 py-2 ${
+              isAlreadyApproved
+                ? "bg-gray-300 cursor-not-allowed"
+                : "bg-[#d1383a] hover:bg-[#b93032]"
+            } text-white rounded font-medium text-sm`}
+          >
+            {isAlreadyApproved ? "Already Approved" : "Approve Selected"}
+          </button>
         </div>
       </div>
     </div>

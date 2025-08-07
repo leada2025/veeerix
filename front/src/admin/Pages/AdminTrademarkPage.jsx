@@ -2,11 +2,15 @@ import React, { useEffect, useState } from "react";
 import axios from "../api/Axios";
 import SuggestionsTable from "../Components/SuggestionsTable";
 import ApproveModal from "../Components/ApproveModal";
+import DocumentUploadModal from "../Components/DocumentUploadModal";
+import PaymentToggle from "../Components/PaymentToggle";
+
 
 const AdminTrademarkPage = () => {
   const [suggestions, setSuggestions] = useState([]);
   const [finalized, setFinalized] = useState([]);
   const [selected, setSelected] = useState(null);
+  const [uploadDocFor, setUploadDocFor] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const fetchAllData = async () => {
@@ -50,15 +54,34 @@ const AdminTrademarkPage = () => {
     }
   };
 
+  const handlePaymentToggle = async (id, status) => {
+    try {
+      await axios.put(`/api/trademark/${id}/payment`, { completed: status });
+      fetchAllData();
+    } catch (err) {
+      console.error("Failed to update payment status", err);
+    }
+  };
+
+const handleDocumentUpload = async (id, file) => {
+  try {
+    const formData = new FormData();
+    formData.append("adminDoc", file); // <-- updated here
+
+    await axios.post(`/api/trademark/${id}/upload-admin-doc`, formData);
+    fetchAllData();
+    setUploadDocFor(null);
+  } catch (err) {
+    console.error("Document upload failed", err);
+  }
+};
+
+
   const pending = suggestions.filter(
     (s) =>
       (!s.approvedNames || s.approvedNames.length === 0) &&
       !s.selectedName &&
       (!s.trackingStatus || s.trackingStatus !== "Registered")
-  );
-
-  const approved = suggestions.filter(
-    (s) => s.approvedNames?.length && !s.selectedName
   );
 
   if (loading) return <div className="p-6 text-gray-500">Loading...</div>;
@@ -69,7 +92,7 @@ const AdminTrademarkPage = () => {
         Trademark Admin Panel
       </h1>
 
-      <Section title=" Pending Submissions">
+      <Section title="Pending Submissions">
         {pending.length > 0 ? (
           <SuggestionsTable data={pending} onSelect={setSelected} />
         ) : (
@@ -82,6 +105,8 @@ const AdminTrademarkPage = () => {
           data={finalized.filter((item) => item.trackingStatus !== "Registered")}
           isFinalized
           onTrackStatusChange={handleTrackStatusChange}
+          onUploadDoc={setUploadDocFor}
+          onTogglePayment={handlePaymentToggle}
         />
       </Section>
 
@@ -92,16 +117,22 @@ const AdminTrademarkPage = () => {
           onApprove={handleApprove}
         />
       )}
+
+      {uploadDocFor && (
+        <DocumentUploadModal
+          suggestionId={uploadDocFor}
+          onUpload={handleDocumentUpload}
+          onClose={() => setUploadDocFor(null)}
+        />
+      )}
     </div>
   );
 };
-
 
 const Section = ({ title, children }) => (
   <div>
     <h2 className="text-xl font-semibold mb-4 text-[#d1383a]">{title}</h2>
     {children}
-
   </div>
 );
 

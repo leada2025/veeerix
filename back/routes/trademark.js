@@ -2,8 +2,8 @@ const express = require("express");
 const router = express.Router();
 const Trademark = require("../models/TrademarkSuggestion");
 const mongoose = require("mongoose");
-
-
+const upload = require("../middleware/multer");
+const multer = require("multer");
 
 router.post("/", async (req, res) => {
   const { customerId, suggestions } = req.body;
@@ -40,6 +40,65 @@ await directTrademark.save();
     res.status(500).json({ error: "Server error." });
   }
 });
+
+router.post("/:id/payment", async (req, res) => {
+  try {
+    const updated = await Trademark.findByIdAndUpdate(
+      req.params.id,
+      { paymentCompleted: true },
+      { new: true }
+    );
+    res.json(updated);
+  } catch (err) {
+    console.error("Payment update failed", err);
+    res.status(500).json({ error: "Failed to mark payment" });
+  }
+});
+router.post("/:id/upload-admin-doc", async (req, res) => {
+  upload.single("adminDoc")(req, res, async (err) => {
+    if (err instanceof multer.MulterError) {
+      return res.status(400).json({ error: err.code || "Upload error" });
+    } else if (err) {
+      return res.status(500).json({ error: "Unexpected error during upload" });
+    } else if (!req.file) {
+      return res.status(400).json({ error: "No file provided" });
+    }
+
+    try {
+      const url = `/uploads/${req.file.filename}`;
+      const updated = await Trademark.findByIdAndUpdate(
+        req.params.id,
+        { adminDocumentUrl: url },
+        { new: true }
+      );
+      res.json(updated);
+    } catch (dbErr) {
+      console.error("DB update failed", dbErr);
+      res.status(500).json({ error: "Failed to save document URL" });
+    }
+  });
+});
+
+router.post("/:id/upload-signed-doc", upload.single("signedDoc"), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: "No file uploaded" });
+  }
+
+  try {
+    const url = `/uploads/${req.file.filename}`;
+    const updated = await Trademark.findByIdAndUpdate(
+      req.params.id,
+      { customerSignedDocUrl: url },
+      { new: true }
+    );
+    res.json(updated);
+  } catch (err) {
+    console.error("Signed doc upload error", err);
+    res.status(500).json({ error: "Failed to upload signed document" });
+  }
+});
+
+
 
 // 2. Admin fetches all suggestions
 router.get("/", async (req, res) => {
