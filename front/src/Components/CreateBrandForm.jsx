@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Select from "react-select";
 import api from "../api/Axios";
-
+import { FiInfo } from "react-icons/fi";
 
 
 const DynamicQuoteTable = () => {
@@ -349,40 +349,21 @@ const handleStatusClick = (row) => {
                   )}
                 </td>
 
-  <td
+<td
   className={`p-3 flex items-center gap-2 cursor-pointer ${
     row.status === "Pending" && row._id ? "text-red-600" : ""
   }`}
+  title={row.status === "Pending" && row._id ? "Click for more info" : ""}
   onClick={() => {
-    // Only show popup if the request exists (_id) and status is Pending
     if (row.status === "Pending" && row._id) {
       setWaitingRowIndex(index);
       setShowWaitingPopup(true);
     }
   }}
-  title={row.status === "Pending" && row._id ? "Click for more info" : ""}
 >
-  {row.status === "Pending" && row._id && loadingIndexes.includes(index) && (
-    <svg
-      className="animate-spin h-5 w-5 text-red-600"
-      xmlns="http://www.w3.org/2000/svg"
-      fill="none"
-      viewBox="0 0 24 24"
-    >
-      <circle
-        className="opacity-25"
-        cx="12"
-        cy="12"
-        r="10"
-        stroke="currentColor"
-        strokeWidth="4"
-      />
-      <path
-        className="opacity-75"
-        fill="currentColor"
-        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-      />
-    </svg>
+  {row.status === "Pending" && row._id && (
+<FiInfo className="h-5 w-5 text-red-600 animate-spin" />
+
   )}
   <span>{row.status}</span>
 </td>
