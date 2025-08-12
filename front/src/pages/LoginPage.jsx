@@ -28,7 +28,7 @@ const LoginPage = () => {
       localStorage.setItem("user", JSON.stringify(user));
 
       // Navigate based on brand
-      navigate(isFishman ? "/trademark" : "/create-brand");
+      navigate(isFishman ? "/trademark" : "/dashboard");
     } catch (err) {
       console.error(err);
       setError("Invalid email or password");

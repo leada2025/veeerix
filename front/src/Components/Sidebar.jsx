@@ -4,6 +4,7 @@ import veerixLogo from "../assets/v_logo.png";
 import fishmanLogo from "../assets/FISHMAN BUSINESS SOLUTIONS.jpeg";
 import { useSource } from "../Context/SourceContext";
 import {
+  Gauge, // Added for Dashboard icon
   Home,
   FileText,
   ShoppingCart,
@@ -25,49 +26,54 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
   const logoImg = isFishman ? fishmanLogo : veerixLogo;
 
   const navItems = [
-    { label: "Create Your Brand", path: "/create-brand", icon: <Home size={20} /> },
+    { label: "Dashboard", path: "/dashboard", icon: <Gauge size={20} /> }, // New Dashboard link
+    { label: "Request Quote", path: "/create-brand", icon: <Home size={20} /> },
     { label: "Trademark", path: "/trademark", icon: <FileText size={20} /> },
-     { label: "Trademark Status", path: "/trademarks/track", icon: <FileText size={20} /> },
-{ label: "Trademark History", path: "/trademarkh/history", icon: <FileText size={20} /> },
-{ label: "Trademark Records", path: "/admin/my-registered", icon: <FileText size={20} /> },
+    { label: "Trademark Status", path: "/trademarks/track", icon: <FileText size={20} /> },
+    { label: "Trademark History", path: "/trademarkh/history", icon: <FileText size={20} /> },
+    { label: "Trademark Records", path: "/admin/my-registered", icon: <FileText size={20} /> },
     { label: "Place Order", path: "/place-order", icon: <ShoppingCart size={20} /> },
     { label: "Design Approval", path: "/packing-approval", icon: <PackageCheck size={20} /> },
     { label: "Packing Material Status", path: "/packmattrack", icon: <PackageCheck size={20} /> },
     { label: "Packing Status", path: "/packing/status", icon: <PackageCheck size={20} /> },
-      { label: "Packing History", path: "/packing-history", icon: <PackageCheck size={20} /> },
-
+    { label: "Packing History", path: "/packing-history", icon: <PackageCheck size={20} /> },
     // { label: "Status", path: "/status", icon: <Info size={20} /> },
     { label: "Distribution", path: "/distribution", icon: <Truck size={20} /> },
   ];
 
-const visibleNavItems = navItems.filter((item) => {
-  if (isFishman) {
-  return (
-    item.label === "Trademark" ||
-    item.label === "Trademark Status" ||
-    item.label === "Trademark History"||
-    item.label === "Trademark Records"
-  );
-
-
-  } else {
-    // For Veerix, hide Trademark-related pages
-    return item.label !== "Trademark" && item.label !== "Trademark Status"  && item.label !== "Trademark History" && item.label !== "Trademark Records";
-  }
-});
-
-
+  const visibleNavItems = navItems.filter((item) => {
+    if (isFishman) {
+      return (
+        item.label === "Trademark" ||
+        item.label === "Trademark Status" ||
+        item.label === "Trademark History" ||
+        item.label === "Trademark Records"
+      );
+    } else {
+      // For Veerix, hide Trademark-related pages
+      return (
+        item.label !== "Trademark" &&
+        item.label !== "Trademark Status" &&
+        item.label !== "Trademark History" &&
+        item.label !== "Trademark Records"
+      );
+    }
+  });
 
   return (
     <aside
-      className={`${sidebarBg} h-screen border-r transition-all duration-300 ease-in-out ${
+      className={`${sidebarBg} h-screen border-r border-gray-200 transition-all duration-300 ease-in-out ${
         collapsed ? "w-16" : "w-64"
       }`}
     >
       {/* Logo Section */}
       <div className="flex items-center justify-between px-4 py-4 border-b border-gray-300">
         {collapsed ? (
-          <span className={`text-xl font-bold ${isFishman ? "text-white" : "text-[#d1383a]"}`}>
+          <span
+            className={`text-xl font-bold ${
+              isFishman ? "text-white" : "text-[#d1383a]"
+            }`}
+          >
             {isFishman ? "FB" : "VB"}
           </span>
         ) : (

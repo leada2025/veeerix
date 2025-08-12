@@ -14,12 +14,14 @@ import PackingStatusPage from "../Components/PackingStatusPage";
 import PackingHistory from "../Components/PackingHistory";
 import CustomerDirectTrademarkPage from "../Components/CustomerDirectTrademarkPage";
 import StatusTracker from "../pages/AdminPackingMaterialTracking";
+import Dashboard from "../pages/Dashboard";
 
 
 
 
 const CustomerRoutes = () => (
   <Route element={<CustomerLayout />}>
+     <Route path="/dashboard" element={<Dashboard />} />
     <Route path="/create-brand" element={<CreateBrandForm />} />
     <Route path="/trademark" element={<TrademarkDashboard />} />
     <Route path="/place-order" element={<PlaceOrder />} />

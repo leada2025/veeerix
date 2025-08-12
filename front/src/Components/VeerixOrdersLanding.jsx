@@ -5,6 +5,8 @@ import fishmanLogo from "../assets/FISHMAN BUSINESS SOLUTIONS.jpeg";
 import veerixIcon from "../assets/fishman1.png";
 import { useSource } from "../Context/SourceContext";
 import { Settings } from "lucide-react";
+import Particles from "@tsparticles/react";
+// Import Particles
 
 const VeerixOrdersLanding = () => {
   const navigate = useNavigate();
@@ -12,7 +14,7 @@ const VeerixOrdersLanding = () => {
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef(null);
 
-  const cards = [
+  const workflowCards = [
     {
       title: "Veerix Order Management",
       description: "Manage your brand & orders",
@@ -40,13 +42,15 @@ const VeerixOrdersLanding = () => {
       description: "Explore our product range and story",
       image: veerixIcon,
       onClick: () =>
-        window.open("https://orders.fishmanb2b.in/distributor-signup", "_blank"),
+        window.open(
+          "https://orders.fishmanb2b.in/distributor-signup",
+          "_blank"
+        ),
       bg: "bg-[#e6f7f7]",
       textColor: "text-[#0f5d5d]",
     },
   ];
 
-  // Close dropdown on outside click
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -58,25 +62,69 @@ const VeerixOrdersLanding = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#f9fafb] flex items-center justify-center p-4 relative">
-      {/* Top-right settings icon */}
-      <div className="absolute top-5 right-5" ref={dropdownRef}>
+    <div className="relative min-h-screen flex flex-col items-center text-white overflow-hidden">
+      {/* Static Red Gradient Background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[#d1383a] via-[#b12f31] to-[#8a2326] -z-20 pointer-events-none"></div>
+
+      {/* Particles Background */}
+      <Particles
+        className="absolute inset-0 -z-10 pointer-events-none"
+        options={{
+          fpsLimit: 60,
+          particles: {
+            number: {
+              value: 80,
+              density: { enable: true, area: 800 },
+            },
+            color: { value: "#ffffff" },
+            opacity: {
+              value: 0.3,
+              random: true,
+              anim: { enable: true, speed: 1, opacity_min: 0.1, sync: false },
+            },
+            size: {
+              value: 2,
+              random: true,
+              anim: { enable: false },
+            },
+            move: {
+              enable: true,
+              speed: 0.5,
+              direction: "none",
+              random: true,
+              straight: false,
+              outModes: "out",
+            },
+            shape: { type: "circle" },
+          },
+          detectRetina: true,
+          interactivity: {
+            detectsOn: "canvas",
+            events: {
+              onHover: { enable: false },
+              onClick: { enable: false },
+              resize: true,
+            },
+          },
+        }}
+      />
+
+      {/* Settings Icon */}
+      <div className="absolute top-5 right-5 z-10" ref={dropdownRef}>
         <button
           onClick={() => setShowDropdown(!showDropdown)}
-          className="p-2 rounded-full hover:bg-gray-200 transition"
+          className="p-2 rounded-full hover:bg-white hover:bg-opacity-20 transition"
         >
-          <Settings className="h-6 w-6 text-[#d1383a]" />
+          <Settings className="h-6 w-6" />
         </button>
-
-        {/* Dropdown */}
         {showDropdown && (
-          <div className="absolute right-0 mt-2 w-40 bg-white shadow-lg rounded-md py-2 z-50 border border-[#d1383a]">
+          <div className="absolute right-0 mt-2 w-40 bg-white text-black shadow-lg rounded-md py-2 z-50">
             <button
               onClick={() => {
                 setShowDropdown(false);
                 navigate("/admin");
               }}
-              className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+              className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
             >
               Admin
             </button>
@@ -84,21 +132,125 @@ const VeerixOrdersLanding = () => {
         )}
       </div>
 
-      {/* Main Card Content */}
-      <div className="text-center w-full max-w-5xl">
-        <div className="mb-10">
-          <h1 className="text-3xl font-bold text-[#d1383a]">Welcome to Veerix Orders</h1>
-          <p className="text-gray-600 mt-2">Choose your workflow to get started</p>
-        </div>
+      {/* Hero Section */}
+      <section className="relative z-40 text-center py-16 px-6 max-w-4xl">
+        <h1 className="text-4xl font-bold mb-4">We Make Private Label, Made Simple</h1>
+        <p className="text-lg">
+          Fast. Organized. High-Quality. From healthcare to wellness, Veerix
+          Value Link transforms your private label vision into market-ready
+          products — faster, smoother, and more profitably than ever before.
+        </p>
+      </section>
 
+      {/* Why Choose Us */}
+      <section className="relative z-10 w-full max-w-6xl px-6 py-10">
+        <h2 className="text-2xl font-bold text-center mb-8">
+          Why Choose Veerix Value Link?
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 text-gray-700 text-center">
+          {[
+            {
+              title: "Speed to Market",
+              desc: "Accelerated timelines without compromising quality.",
+            },
+            {
+              title: "End-to-End Organization",
+              desc: "From idea to delivery, every step is structured and transparent.",
+            },
+            {
+              title: "Seamless Communication",
+              desc: "One channel, one team, no confusion.",
+            },
+            {
+              title: "Multi-Sector Expertise",
+              desc: "Healthcare, Medtech, Pharma, Cosmetics, and Nutraceuticals.",
+            },
+          ].map((item, i) => (
+            <div
+              key={i}
+              className="bg-white bg-opacity-10 p-6 rounded-xl backdrop-blur-md hover:bg-opacity-20 transition"
+            >
+              <h3 className="font-semibold text-lg mb-2">{item.title}</h3>
+              <p className="text-sm">{item.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Our Private Label Solutions */}
+      <section className="relative z-10 max-w-5xl px-6 py-10">
+        <h2 className="text-2xl font-bold text-center mb-8">
+          Our Private Label Solutions
+        </h2>
+        <div className="space-y-6 text-white text-lg">
+          <p>
+            <strong>Healthcare & Medtech –</strong> Custom devices,
+            diagnostics, and patient care products meeting the highest safety
+            standards.
+          </p>
+          <p>
+            <strong>Pharmaceuticals –</strong> Regulatory-compliant
+            formulations, WHO-GMP manufacturing, and customized packaging.
+          </p>
+          <p>
+            <strong>Cosmetics & Personal Care –</strong> Beauty and skincare
+            products tailored to your brand’s vision.
+          </p>
+          <p>
+            <strong>Nutraceuticals –</strong> Science-backed supplements and
+            functional foods that win customer trust.
+          </p>
+        </div>
+      </section>
+
+      {/* How We Work */}
+      <section className="relative z-10 max-w-5xl px-6 py-10">
+        <h2 className="text-2xl font-bold text-center mb-8">How We Work</h2>
+        <ul className="list-disc list-inside space-y-2 text-white text-lg">
+          <li>
+            <strong>Concept & Consultation –</strong> Define your goals, budget,
+            and timelines.
+          </li>
+          <li>
+            <strong>Product Development –</strong> Formulation, prototyping, and
+            compliance checks.
+          </li>
+          <li>
+            <strong>Branding & Packaging –</strong> Custom design and
+            market-ready presentation.
+          </li>
+          <li>
+            <strong>Manufacturing & Quality Control –</strong> Delivered to your
+            specifications.
+          </li>
+          <li>
+            <strong>On-Time Delivery –</strong> Reliable, trackable, and ready
+            for launch.
+          </li>
+        </ul>
+      </section>
+
+      {/* Call to Action */}
+      <section className="relative z-10 text-center py-10">
+        <h2 className="text-3xl font-bold mb-4">Your Competitive Edge</h2>
+        <p className="max-w-3xl mx-auto mb-6">
+          With Veerix Value Link, you’re not just outsourcing production —
+          you’re gaining a partner obsessed with speed, precision, and results.
+        </p>
+      
+      </section>
+
+      {/* Workflow Selection */}
+      <section className="relative z-10 text-center w-full max-w-5xl py-10">
+        <h2 className="text-2xl font-bold mb-6">Choose Your Workflow</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
-          {cards.map((card, index) => (
+          {workflowCards.map((card, index) => (
             <div
               key={index}
               onClick={card.onClick}
-              className={`${card.bg} ${card.textColor} border cursor-pointer rounded-xl p-4 flex flex-col items-center justify-between text-center hover:shadow-lg transform transition-transform hover:scale-105 h-[180px]`}
+              className={`${card.bg} ${card.textColor} border cursor-pointer rounded-xl p-4 flex flex-col items-center justify-between text-center hover:shadow-lg transform transition-transform hover:scale-105 h-[200px]`}
             >
-              <div className="flex justify-center items-center h-[300px] mb-2">
+              <div className="flex justify-center items-center h-[100px] mb-2">
                 <img
                   src={card.image}
                   alt={card.title}
@@ -106,13 +258,13 @@ const VeerixOrdersLanding = () => {
                 />
               </div>
               <div>
-                <h2 className="text-lg font-semibold">{card.title}</h2>
+                <h3 className="text-lg font-semibold">{card.title}</h3>
                 <p className="text-xs mt-1">{card.description}</p>
               </div>
             </div>
           ))}
         </div>
-      </div>
+      </section>
     </div>
   );
 };
