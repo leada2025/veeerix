@@ -15,7 +15,7 @@ import PackingHistory from "../Components/PackingHistory";
 import CustomerDirectTrademarkPage from "../Components/CustomerDirectTrademarkPage";
 import StatusTracker from "../pages/AdminPackingMaterialTracking";
 import Dashboard from "../pages/Dashboard";
-
+import RequestDetails from "../Components/RequestDetails";
 
 
 
@@ -35,6 +35,7 @@ const CustomerRoutes = () => (
 
       <Route path="/admin/my-registered" element={<CustomerDirectTrademarkPage />} />
       <Route path="/packmattrack" element={<StatusTracker />} />
+      <Route path="/requests/:id" element={<RequestDetails />} />
       
 
   </Route>

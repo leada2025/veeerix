@@ -6,7 +6,6 @@ import veerixIcon from "../assets/fishman1.png";
 import { useSource } from "../Context/SourceContext";
 import { Settings } from "lucide-react";
 import Particles from "@tsparticles/react";
-// Import Particles
 
 const VeerixOrdersLanding = () => {
   const navigate = useNavigate();
@@ -14,42 +13,49 @@ const VeerixOrdersLanding = () => {
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef(null);
 
+  // New state to track which card index is animating shutter
+  const [shutterIndex, setShutterIndex] = useState(null);
+  const [activeIndex, setActiveIndex] = useState(null);
+
   const workflowCards = [
-    {
-      title: "Veerix Order Management",
-      description: "Manage your brand & orders",
-      image: veerixLogo,
-      onClick: () => {
-        setSource("veerix");
-        navigate("/login");
-      },
-      bg: "bg-white",
-      textColor: "text-[#d1383a]",
+  {
+    title: "Veerix Order Management",
+    description: "Manage your brand & orders",
+    hoverDesc: "Manufacturer",
+    image: veerixLogo,
+    onClick: () => {
+      setSource("veerix");
+      navigate("/login");
     },
-    {
-      title: "Fishman Business Solutions",
-      description: "Trademark, compliance, and legal solutions.",
-      image: fishmanLogo,
-      onClick: () => {
-        setSource("fishman");
-        navigate("/login");
-      },
-      bg: "bg-[#7b4159]",
-      textColor: "text-white",
+    bg: "bg-white",
+    textColor: "text-[#d1383a]",
+  },
+  {
+    title: "Fishman Business Solutions",
+    description: "Trademark, compliance, and legal solutions.",
+    hoverDesc: "Trademark and Logo",
+    image: fishmanLogo,
+    onClick: () => {
+      setSource("fishman");
+      navigate("/login");
     },
-    {
-      title: "Visit Fishmanb2b",
-      description: "Explore our product range and story",
-      image: veerixIcon,
-      onClick: () =>
-        window.open(
-          "https://orders.fishmanb2b.in/distributor-signup",
-          "_blank"
-        ),
-      bg: "bg-[#e6f7f7]",
-      textColor: "text-[#0f5d5d]",
-    },
-  ];
+    bg: "bg-[#7b4159]",
+    textColor: "text-white",
+  },
+  {
+    title: "Visit Fishmanb2b",
+    description: "Explore our product range and story",
+    hoverDesc: "Purchase",
+    image: veerixIcon,
+    onClick: () =>
+      window.open(
+        "https://orders.fishmanb2b.in/distributor-signup",
+        "_blank"
+      ),
+    bg: "bg-[#e6f7f7]",
+    textColor: "text-[#0f5d5d]",
+  },
+];
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -60,6 +66,20 @@ const VeerixOrdersLanding = () => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // Handle click with shutter animation
+const handleCardClick = (index, onClick) => {
+    if (shutterIndex !== null) return; // prevent multiple clicks during animation
+    setShutterIndex(index);
+    // mobile overlay toggle
+    setActiveIndex(index === activeIndex ? null : index);
+
+    // Wait for shutter animation
+    setTimeout(() => {
+      onClick();
+      setShutterIndex(null);
+    }, 700);
+  };
 
   return (
     <div className="relative min-h-screen flex flex-col items-center text-white overflow-hidden">
@@ -241,23 +261,42 @@ const VeerixOrdersLanding = () => {
       </section>
 
       {/* Workflow Selection */}
-      <section className="relative z-10 text-center w-full max-w-5xl py-10">
+     <section className="relative z-10 text-center w-full max-w-5xl py-10">
         <h2 className="text-2xl font-bold mb-6">Choose Your Workflow</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
           {workflowCards.map((card, index) => (
             <div
               key={index}
-              onClick={card.onClick}
-              className={`${card.bg} ${card.textColor} border cursor-pointer rounded-xl p-4 flex flex-col items-center justify-between text-center hover:shadow-lg transform transition-transform hover:scale-105 h-[200px]`}
+              onClick={() => handleCardClick(index, card.onClick)}
+              className={`${card.bg} ${card.textColor} border cursor-pointer rounded-xl p-4 flex flex-col items-center justify-between text-center hover:shadow-lg transform transition-transform hover:scale-105 h-[200px] relative overflow-hidden group`}
             >
-              <div className="flex justify-center items-center h-[100px] mb-2">
+              {/* Overlay for hover (desktop) & tap (mobile) */}
+              <div
+                className={`absolute inset-0 bg-[#d1383a] bg-opacity-60 flex items-center justify-center rounded-xl z-20 transition-opacity duration-300 pointer-events-none
+                  ${activeIndex === index ? "opacity-100" : "opacity-0"} 
+                  md:group-hover:opacity-100`}
+              >
+                <span className="text-white text-xl font-semibold select-none">
+                  {card.hoverDesc}
+                </span>
+              </div>
+
+              {/* Shutter animation overlays */}
+              {shutterIndex === index && (
+                <>
+                  <div className="absolute top-0 left-0 w-full h-1/2 bg-black/80 shutter-top origin-bottom"></div>
+                  <div className="absolute bottom-0 left-0 w-full h-1/2 bg-black/80 shutter-bottom origin-top"></div>
+                </>
+              )}
+
+              <div className="flex justify-center items-center h-[100px] mb-2 z-10 relative">
                 <img
                   src={card.image}
                   alt={card.title}
                   className="max-h-full max-w-[200px] object-contain"
                 />
               </div>
-              <div>
+              <div className="z-10 relative">
                 <h3 className="text-lg font-semibold">{card.title}</h3>
                 <p className="text-xs mt-1">{card.description}</p>
               </div>

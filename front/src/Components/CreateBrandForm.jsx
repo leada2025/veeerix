@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import Select from "react-select";
 import api from "../api/Axios";
-import { FiInfo } from "react-icons/fi";
+import { FiInfo, FiCheckCircle } from "react-icons/fi";
+
 
 
 const DynamicQuoteTable = () => {
@@ -17,6 +18,14 @@ const [activeTab, setActiveTab] = useState("request"); // request | status | his
 const [waitingRowIndex, setWaitingRowIndex] = useState(null);
 const [showWaitingPopup, setShowWaitingPopup] = useState(false);
 const [waitingRowId, setWaitingRowId] = useState(null);
+
+const [showPaymentPopup, setShowPaymentPopup] = useState(false);
+const [paymentRowId, setPaymentRowId] = useState(null);
+const prevStatusCountRef = React.useRef(0);
+const prevHistoryCountRef = React.useRef(0);
+
+const [hasNewStatus, setHasNewStatus] = useState(false);
+const [hasNewHistory, setHasNewHistory] = useState(false);
 
   const getCustomerId = () => {
     try {
@@ -59,9 +68,14 @@ useEffect(() => {
 
 
 
- const fetchPreviousRequests = async () => {
-  const customerId = getCustomerId();
+ // Load old counts from localStorage on mount
+useEffect(() => {
+  prevStatusCountRef.current = parseInt(localStorage.getItem("prevStatusCount") || "0", 10);
+  prevHistoryCountRef.current = parseInt(localStorage.getItem("prevHistoryCount") || "0", 10);
+}, []);
 
+const fetchPreviousRequests = async () => {
+  const customerId = getCustomerId();
   if (!customerId || customerId.length !== 24) {
     const empty = [{ selected: null, manual: "", status: "Pending", payment: "Not Paid" }];
     setRows(empty);
@@ -70,41 +84,56 @@ useEffect(() => {
 
   try {
     const response = await api.get(`/api/brand-request/${customerId}`);
-   const fetched = response.data.map((item) => ({
-  _id: item._id,
-  selected: item.moleculeName
-    ? (() => {
-        const found = moleculeOptions.find((m) => m.value === item.moleculeName);
-        return found ? { ...found } : null;
-      })()
-    : null,
-  manual: item.customMolecule || "",
-  comment: item.customerComment || "", // 🗣️ customer's own comment
-  adminComment: item.adminComment || "", // ✅ admin reply
-  quotedAmount: item.quotedAmount || 0, // ✅ final price
-  status: item.status === "Pending" ? "Pending" : "Quote Requested",
-  payment: item.paymentDone
-    ? "Paid"
-    : item.status === "Requested Payment"
-    ? "Awaiting"
-    : "Not Paid",
-}));
 
+    const fetched = response.data.map((item) => ({
+      _id: item._id,
+      selected: item.moleculeName
+        ? moleculeOptions.find((m) => m.value === item.moleculeName) || null
+        : null,
+      manual: item.customMolecule || "",
+      comment: item.customerComment || "",
+      adminComment: item.adminComment || "",
+      quotedAmount: item.quotedAmount || 0,
+      status: item.status === "Pending" ? "Pending" : "Approved Awaiting",
+      payment: item.paymentDone
+        ? "Paid"
+        : item.status === "Requested Payment"
+        ? "Awaiting"
+        : "Not Paid",
+    }));
 
+    const emptyRow = {
+      selected: null,
+      manual: "",
+      comment: "",
+      status: "Pending",
+      payment: "Not Paid",
+    };
 
-const emptyRow = {
-  selected: null,
-  manual: "",
-  comment: "", // ✅ include comment
-  status: "Pending",
-  payment: "Not Paid",
-};
+    const finalRows = fetched.length > 0 ? [emptyRow, ...fetched] : [emptyRow];
+    setRows(finalRows);
 
-const finalRows = fetched.length > 0
-  ? [emptyRow, ...fetched]
-  : [emptyRow];
+    // ✅ Count current
+    const currentStatusCount = finalRows.filter(r => r._id && r.payment !== "Paid").length;
+    const currentHistoryCount = finalRows.filter(r => r.payment === "Paid").length;
 
-setRows(finalRows);
+    // ✅ Compare with stored values
+// ✅ New condition: If count increased OR "Approved Awaiting" exists
+const hasApprovedAwaiting = finalRows.some(r => r.status === "Approved Awaiting" && r.payment !== "Paid");
+
+if ((currentStatusCount > prevStatusCountRef.current || hasApprovedAwaiting) && activeTab !== "status") {
+  setHasNewStatus(true);
+}
+
+    if (currentHistoryCount > prevHistoryCountRef.current && activeTab !== "history") {
+      setHasNewHistory(true);
+    }
+
+    // ✅ Save new counts to localStorage
+    prevStatusCountRef.current = currentStatusCount;
+    prevHistoryCountRef.current = currentHistoryCount;
+    localStorage.setItem("prevStatusCount", currentStatusCount);
+    localStorage.setItem("prevHistoryCount", currentHistoryCount);
 
     return finalRows;
   } catch (err) {
@@ -114,7 +143,6 @@ setRows(finalRows);
     return fallback;
   }
 };
-
 
   const isDuplicate = (value, manual, indexToCheck) => {
     return rows.some((r, i) => {
@@ -216,9 +244,8 @@ const handleSaveComment = async (index) => {
   }
 };
 
-const requestQuotes = rows.filter(r => !r._id || r.status === "Pending");
-const quoteStatus = rows.filter(r => r._id && r.payment !== "Paid");
-const quoteHistory = rows.filter(r => r.payment === "Paid");
+// Inside your render function, replace the current filtering logic with:
+
 
 const handleStatusClick = (row) => {
   if (row.status === "Pending") {
@@ -227,35 +254,43 @@ const handleStatusClick = (row) => {
   }
 };
 
+const handleTabClick = (tabId) => {
+  setActiveTab(tabId);
+  if (tabId === "status") setHasNewStatus(false);
+  if (tabId === "history") setHasNewHistory(false);
+};
+
+
 
   return (
   <div className="max-w-6xl mx-auto mt-10 p-4">
  
 
     {/* Tabs */}
-    <div className="flex  mb-4">
-      {[
-        { id: "request", label: "Request Quote" },
-        { id: "status", label: "Quote Status" },
-        { id: "history", label: "Quote History" }
-      ].map(tab => (
-        <button
-          key={tab.id}
-          className={`px-4 py-2 ${
-            activeTab === tab.id
-              ? "border-b-2 border-[#d1383a] text-[#d1383a]"
-              : "text-gray-500"
-          }`}
-          onClick={() => setActiveTab(tab.id)}
-        >
-          {tab.label}
-        </button>
-      ))}
-    </div>
+ <div className="flex mb-4">
+        {[
+          { id: "request", label: "Request Quote" },
+          { id: "status", label: "Quote Status", badge: hasNewStatus },
+          { id: "history", label: "Quote History", badge: hasNewHistory }
+        ].map(tab => (
+          <button
+            key={tab.id}
+            className={`relative px-4 py-2 ${
+              activeTab === tab.id
+                ? "border-b-2 border-[#d1383a] text-[#d1383a]"
+                : "text-gray-500"
+            }`}
+            onClick={() => handleTabClick(tab.id)}
+          >
+            {tab.label}
+            {tab.badge && <span className="heartbeat-dot"></span>}
+          </button>
+        ))}
+      </div>
 
     {/* Filtered data */}
     {(() => {
-      const requestQuotes = rows.filter(r => !r._id || r.status === "Pending");
+      const requestQuotes = rows.filter(r => !r._id);
       const quoteStatus = rows.filter(r => r._id && r.payment !== "Paid");
       const quoteHistory = rows.filter(r => r.payment === "Paid");
 
@@ -271,7 +306,7 @@ const handleStatusClick = (row) => {
           <thead className="bg-gray-100 text-gray-600 uppercase text-xs">
             <tr>
               <th className="p-3">Molecule Category</th>
-              <th className="p-3">Manual Entry</th>
+              <th className="p-3"></th>
               <th className="p-3">Rate (₹)</th>
               <th className="p-3">Comment</th>
               <th className="p-3">Status</th>
@@ -350,22 +385,36 @@ const handleStatusClick = (row) => {
                 </td>
 
 <td
-  className={`p-3 flex items-center gap-2 cursor-pointer ${
-    row.status === "Pending" && row._id ? "text-red-600" : ""
+  className={`p-3 flex items-center gap-2 ${
+    row.payment === "Paid"
+      ? "text-green-600"
+      : row.status === "Pending"
+      ? "text-yellow-600"
+      : row.status === "Approved Awaiting"
+      ? "text-green-600"
+      : ""
   }`}
-  title={row.status === "Pending" && row._id ? "Click for more info" : ""}
   onClick={() => {
+    if (row.payment === "Paid") return; // ✅ No popup for Paid
+
     if (row.status === "Pending" && row._id) {
       setWaitingRowIndex(index);
       setShowWaitingPopup(true);
+    } else if (row.status === "Approved Awaiting" && row._id) {
+      setPaymentRowId(row._id);
+      setShowPaymentPopup(true);
     }
   }}
 >
-  {row.status === "Pending" && row._id && (
-<FiInfo className="h-5 w-5 text-red-600 animate-spin" />
+  {row.payment === "Paid" ? (
+    <FiCheckCircle className="h-5 w-5 text-green-600" />
+  ) : row.status === "Pending" && row._id ? (
+    <FiInfo className="h-5 w-5 text-yellow-600 animate-spin" />
+  ) : row.status === "Approved Awaiting" && row._id ? (
+    <FiInfo className="h-5 w-5 text-green-600 animate-spin" />
+  ) : null}
 
-  )}
-  <span>{row.status}</span>
+  <span>{row.payment === "Paid" ? "Paid" : row.status}</span>
 </td>
 
 
@@ -484,6 +533,44 @@ const handleStatusClick = (row) => {
         }}
       >
         Close
+      </button>
+    </div>
+  </div>
+)}
+{showPaymentPopup && (
+  <div
+    className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+    onClick={() => {
+      setShowPaymentPopup(false);
+      setPaymentRowId(null);
+    }}
+  >
+    <div
+      className="bg-white p-6 rounded-lg max-w-sm text-center"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <p className="text-lg font-semibold mb-4">
+        Admin requested you to pay. Please make the payment.
+      </p>
+      <button
+        className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+        onClick={() => {
+          // 🔹 Here trigger your payment API or redirect
+          alert("Payment flow started for row: " + paymentRowId);
+          setShowPaymentPopup(false);
+          setPaymentRowId(null);
+        }}
+      >
+        Pay Now
+      </button>&nbsp;&nbsp;&nbsp;
+      <button
+        className="mt-3 px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500"
+        onClick={() => {
+          setShowPaymentPopup(false);
+          setPaymentRowId(null);
+        }}
+      >
+        Cancel
       </button>
     </div>
   </div>
