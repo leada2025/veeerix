@@ -93,30 +93,30 @@ const CustomerPortal = () => {
 
   if (loading) return <div className="p-4">Loading...</div>;
 
-  if (!submissions.length)
-    return (
-      <div className="p-4 text-center text-gray-500">
-        No trademark requests found.
-      </div>
-    );
+
 
   return (
     <div className="max-w-7xl mx-auto mt-10 px-4">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold" style={{ color: primaryColor }}>
-          Trademark Requests
-        </h2>
-        <button
-          onClick={() => setShowModal(true)}
-          className="flex items-center px-4 py-2 text-white rounded-lg shadow transition"
-          style={{ backgroundColor: primaryColor }}
-        >
-          <PlusCircle className="mr-2" size={18} /> New Request
-        </button>
-      </div>
+    {/* Header */}
+    <div className="flex justify-between items-center mb-6">
+      <h2 className="text-2xl font-bold" style={{ color: primaryColor }}>
+        Trademark Requests
+      </h2>
+      <button
+        onClick={() => setShowModal(true)}
+        className="flex items-center px-4 py-2 text-white rounded-lg shadow transition"
+        style={{ backgroundColor: primaryColor }}
+      >
+        <PlusCircle className="mr-2" size={18} /> New Request
+      </button>
+    </div>
 
-      {/* Requests Grid */}
+    {/* Requests Grid */}
+    {submissions.length === 0 ? (
+      <div className="p-4 text-center text-gray-500">
+        No trademark requests found.
+      </div>
+    ) : (
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {submissions.map((sub, index) => {
           const completedStages = [
@@ -149,7 +149,11 @@ const CustomerPortal = () => {
               </h3>
               <p className="mt-1 text-sm text-gray-600">
                 Status:{" "}
-                <span className={`font-medium ${isComplete ? "text-green-600" : "text-yellow-600"}`}>
+                <span
+                  className={`font-medium ${
+                    isComplete ? "text-green-600" : "text-yellow-600"
+                  }`}
+                >
                   {isComplete ? "Completed" : "In Progress"}
                 </span>
               </p>
@@ -168,40 +172,50 @@ const CustomerPortal = () => {
           );
         })}
       </div>
+    )}
 
-      {/* Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
-            <h3 className="text-lg font-semibold mb-4" style={{ color: primaryColor }}>
-              Suggest Brand Names
-            </h3>
-            <form onSubmit={handleSubmitNames} className="space-y-3">
-              {suggestedNames.map((name, index) => (
-                <input
-                  key={index}
-                  type="text"
-                  value={name}
-                  onChange={(e) => handleChange(index, e.target.value)}
-                  placeholder={`Brand Name ${index + 1}`}
-                  required={index === 0}
-                  className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2"
-                  style={{ borderColor: primaryColor }}
-                />
-              ))}
-              <div className="flex space-x-2 pt-2">
-                <button type="submit" className="flex-1 text-white py-2 rounded" style={{ backgroundColor: primaryColor }}>
-                  Submit
-                </button>
-                <button type="button" onClick={() => setShowModal(false)} className="flex-1 text-white py-2 rounded" style={{ backgroundColor: primaryColor }}>
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
+    {/* Modal */}
+    {showModal && (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
+        <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+          <h3 className="text-lg font-semibold mb-4" style={{ color: primaryColor }}>
+            Suggest Brand Names
+          </h3>
+          <form onSubmit={handleSubmitNames} className="space-y-3">
+            {suggestedNames.map((name, index) => (
+              <input
+                key={index}
+                type="text"
+                value={name}
+                onChange={(e) => handleChange(index, e.target.value)}
+                placeholder={`Brand Name ${index + 1}`}
+                required={index === 0}
+                className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2"
+                style={{ borderColor: primaryColor }}
+              />
+            ))}
+            <div className="flex space-x-2 pt-2">
+              <button
+                type="submit"
+                className="flex-1 text-white py-2 rounded"
+                style={{ backgroundColor: primaryColor }}
+              >
+                Submit
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowModal(false)}
+                className="flex-1 text-white py-2 rounded"
+                style={{ backgroundColor: primaryColor }}
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
         </div>
-      )}
-    </div>
+      </div>
+    )}
+  </div>
   );
 };
 

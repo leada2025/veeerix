@@ -1,6 +1,46 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "../api/Axios";
+import { useSource } from "../Context/SourceContext";
 
 const LandingPage = () => {
+
+  const navigate = useNavigate();
+  const { source } = useSource();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const isFishman = source === "fishman"; // should be true for this page
+
+    useEffect(() => {
+    window.scroll(0,0);
+  },[]);
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    
+    try {
+      const res = await axios.post("/api/users/login", { email, password });
+      const { token, user } = res.data;
+
+      localStorage.setItem("authToken", token);
+      localStorage.setItem("user", JSON.stringify(user));
+
+      navigate("/trademark"); // fishman goes to trademark
+    } catch (err) {
+      console.error(err);
+      setError("Invalid email or password");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
   return (
     <div className="min-h-screen bg-[#7b4159] text-white font-sans flex flex-col">
       {/* Hero + Login Split */}
@@ -25,26 +65,32 @@ const LandingPage = () => {
         <div className="md:w-1/3 flex items-center justify-center bg-[#5c2f48] px-8 py-16">
           <div className="w-full max-w-md bg-white rounded-2xl p-8 shadow-xl text-[#7b4159]">
             <h2 className="text-2xl font-bold mb-5 text-center">Login</h2>
-            <form className="flex flex-col space-y-3">
+            {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+            <form className="flex flex-col space-y-3" onSubmit={handleLogin}>
               <input
                 type="email"
                 placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
                 className="p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#7b4159]"
               />
               <input
                 type="password"
                 placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
                 className="p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#7b4159]"
               />
               <button
                 type="submit"
-                className="bg-[#7b4159] text-white font-semibold py-3 rounded-lg shadow hover:bg-[#9c5d77] transition text-base"
+                disabled={loading}
+                className="bg-[#7b4159] text-white font-semibold py-3 rounded-lg shadow hover:bg-[#9c5d77] transition text-base disabled:opacity-50"
               >
-                Login
+                {loading ? "Logging in..." : "Login"}
               </button>
-              <p className="text-center text-gray-500 text-xs mt-2">
-                Don't have an account? <a href="#" className="text-[#7b4159] font-semibold hover:underline">Sign Up</a>
-              </p>
+             
             </form>
           </div>
         </div>

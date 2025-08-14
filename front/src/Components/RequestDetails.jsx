@@ -2,8 +2,8 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import axios from "../api/Axios";
 import { BASE_URL } from "../api/config";
-import { Link } from "react-router-dom";
 
+import TrademarkStatusTracker from "./TrademarkStatusTracker"; 
 const primaryColor = "#7b4159";
 
 const stages = [
@@ -18,7 +18,16 @@ const RequestDetails = () => {
   const { id } = useParams();
   const [submission, setSubmission] = useState(null);
   const [files, setFiles] = useState({});
-  const [activeStage, setActiveStage] = useState(0);
+const [activeStage, setActiveStage] = useState(() => {
+  const savedStage = localStorage.getItem("activeStage_" + id);
+  return savedStage !== null ? parseInt(savedStage, 10) : 0;
+});
+
+const handleStageClick = (i) => {
+  setActiveStage(i);
+  localStorage.setItem("activeStage_" + id, i);
+};
+
 
   useEffect(() => {
     if (id) fetchRequest();
@@ -38,7 +47,14 @@ const RequestDetails = () => {
       if (!req) return console.error("Request not found for this ID");
 
       setSubmission(req);
-      setActiveStage(getCompletedStageIndex(req));
+       setActiveStage(getCompletedStageIndex(req));
+     const savedStage = localStorage.getItem("activeStage_" + id);
+if (savedStage !== null) {
+  setActiveStage(Number(savedStage));
+} else {
+  setActiveStage(getCompletedStageIndex(req));
+}
+
     } catch (err) {
       console.error("Error fetching request:", err);
     }
@@ -101,14 +117,16 @@ const pendingNames = submission.suggestions
       <div className="flex justify-between items-center relative">
         {stages.map((stage, i) => {
           const completedIndex = getCompletedStageIndex(submission);
-          const isCompleted = i < completedIndex;
-          const isActive = i === completedIndex;
+         const isCompleted = i < completedIndex;
+const isActive = i === completedIndex && completedIndex < stages.length;
+
 
           return (
             <div
               key={i}
               className="flex flex-col items-center flex-1"
-              onClick={() => setActiveStage(i)}
+              onClick={() => handleStageClick(i)}
+
             >
               <div
                 className={`w-8 h-8 flex items-center justify-center rounded-full text-white font-bold cursor-pointer shadow`}
@@ -272,7 +290,8 @@ const pendingNames = submission.suggestions
           </StageBlock>
         )}
 
-    {activeStage === 4 && (
+
+{activeStage === 4 && (
   <StageBlock title="Upload Signed Document">
     {submission.adminDocumentUrl ? (
       submission.customerSignedDocUrl ? (
@@ -280,13 +299,27 @@ const pendingNames = submission.suggestions
           <p className="text-green-600 font-medium">
             Signed document uploaded ✅
           </p>
-               <Link
-  to="/trademarks/track"
-  className="mt-4 inline-block px-4 py-2 rounded text-white"
-  style={{ backgroundColor: primaryColor }}
->
-  View Trackline
-</Link>
+
+          {/* ✅ Trackline after upload */}
+          {submission.trackingStatus && (
+            <div className="mt-6 p-4 border rounded bg-gray-50">
+              <h4 className="font-semibold mb-2" style={{ color: primaryColor }}>
+                Trademark Tracking
+              </h4>
+              <TrademarkStatusTracker
+                currentStatus={submission.trackingStatus}
+                highlightColor={primaryColor}
+              />
+              <p className="mt-2 text-sm text-gray-600">
+                Current Status:{" "}
+                <span className="font-medium" style={{ color: primaryColor }}>
+                  {submission.trackingStatus}
+                </span>
+              </p>
+            </div>
+          )}
+
+          
         </>
       ) : (
         <>
@@ -306,29 +339,14 @@ const pendingNames = submission.suggestions
               Upload Signed Document
             </button>
           </form>
-          <a
-            href={`/tracking/track`}
-            className="mt-4 inline-block px-4 py-2 rounded text-white"
-            style={{ backgroundColor: primaryColor }}
-          >
-            View Trackline
-          </a>
         </>
       )
     ) : (
-      <>
-        <p className="text-gray-500 italic">Download document first.</p>
-       <Link
-  to="/trademarks/track"
-  className="mt-4 inline-block px-4 py-2 rounded text-white"
-  style={{ backgroundColor: primaryColor }}
->
-  View Trackline
-</Link>
-      </>
+      <p className="text-gray-500 italic">Download document first.</p>
     )}
   </StageBlock>
 )}
+
 
 
       </div>
@@ -346,13 +364,15 @@ function StageBlock({ title, children }) {
 }
 
 function getCompletedStageIndex(sub) {
-  if (sub.customerSignedDocUrl) return 4; // max index = 4
+  if (sub.customerSignedDocUrl) return stages.length; // All steps done
   if (sub.adminDocumentUrl) return 3;
   if (sub.paymentCompleted) return 2;
-  if (sub.selectedName) return 1;
-  if (sub.suggestedToCustomer?.length > 0) return 0;
+  if (sub.selectedName) return 2;
+  if (sub.suggestedToCustomer?.length > 0) return 1;
   return 0;
 }
+
+
 
 
 export default RequestDetails;

@@ -54,6 +54,7 @@ router.post("/:id/payment", async (req, res) => {
     res.status(500).json({ error: "Failed to mark payment" });
   }
 });
+
 router.post("/:id/upload-admin-doc", async (req, res) => {
   upload.single("adminDoc")(req, res, async (err) => {
     if (err instanceof multer.MulterError) {
@@ -122,15 +123,16 @@ router.get("/finalized", async (req, res) => {
 // ✅ General fetch by customerId — comes AFTER all fixed string routes
 // GET by customerId
 // Change this from findOne to find
+// Exclude direct trademarks
 router.get("/:customerId", async (req, res) => {
   const { customerId } = req.params;
-  try {
-    const submissions = await Trademark.find({ customerId }).sort({ createdAt: -1 });
-    res.json(submissions); // ⬅ return array of all submissions
-  } catch (err) {
-    res.status(500).json({ error: "Failed to fetch submissions" });
-  }
+  const submissions = await Trademark.find({
+    customerId,
+    isDirect: { $ne: true }  // exclude direct ones
+  }).sort({ createdAt: -1 });
+  res.json(submissions);
 });
+
 
 
 // 3. Admin marks availability & sends selected names to customer

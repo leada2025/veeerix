@@ -271,7 +271,7 @@ const handleCardClick = (index, onClick) => {
               className={`${card.bg} ${card.textColor} border cursor-pointer rounded-xl p-4 flex flex-col items-center justify-between text-center hover:shadow-lg transform transition-transform hover:scale-105 h-[200px] relative overflow-hidden group`}
             >
               {/* Overlay for hover (desktop) & tap (mobile) */}
-              <div
+              {/* <div
                 className={`absolute inset-0 bg-[#d1383a] bg-opacity-60 flex items-center justify-center rounded-xl z-20 transition-opacity duration-300 pointer-events-none
                   ${activeIndex === index ? "opacity-100" : "opacity-0"} 
                   md:group-hover:opacity-100`}
@@ -279,7 +279,7 @@ const handleCardClick = (index, onClick) => {
                 <span className="text-white text-xl font-semibold select-none">
                   {card.hoverDesc}
                 </span>
-              </div>
+              </div> */}
 
               {/* Shutter animation overlays */}
               {shutterIndex === index && (
