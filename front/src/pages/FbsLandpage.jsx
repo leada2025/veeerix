@@ -4,34 +4,38 @@ import axios from "../api/Axios";
 import { useSource } from "../Context/SourceContext";
 
 const LandingPage = () => {
-
   const navigate = useNavigate();
-  const { source } = useSource();
+  const { source, setSource } = useSource(); // get both
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const isFishman = source === "fishman"; // should be true for this page
+  const isFishman = source === "fishman"; // will be true after login
 
-    useEffect(() => {
-    window.scroll(0,0);
-  },[]);
+  useEffect(() => {
+    window.scroll(0, 0);
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
     setLoading(true);
 
-    
     try {
       const res = await axios.post("/api/users/login", { email, password });
       const { token, user } = res.data;
 
+      // Save token + user
       localStorage.setItem("authToken", token);
       localStorage.setItem("user", JSON.stringify(user));
 
-      navigate("/trademark"); // fishman goes to trademark
+      // ✅ Save source as fishman
+      setSource("fishman");
+      localStorage.setItem("selectedSource", "fishman");
+
+      // Redirect
+      navigate("/trademark");
     } catch (err) {
       console.error(err);
       setError("Invalid email or password");
@@ -39,7 +43,6 @@ const LandingPage = () => {
       setLoading(false);
     }
   };
-
 
   return (
     <div className="min-h-screen bg-[#7b4159] text-white font-sans flex flex-col">
@@ -90,7 +93,6 @@ const LandingPage = () => {
               >
                 {loading ? "Logging in..." : "Login"}
               </button>
-             
             </form>
           </div>
         </div>

@@ -37,7 +37,7 @@ const VeerixOrdersLanding = () => {
     image: fishmanLogo,
     onClick: () => {
       setSource("fishman");
-      navigate("/login");
+      navigate("/fbs");
     },
     bg: "bg-[#7b4159]",
     textColor: "text-white",

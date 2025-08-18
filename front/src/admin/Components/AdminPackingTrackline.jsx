@@ -32,20 +32,24 @@ const AdminTracklineUpdate = () => {
 
   const handleStepUpdate = async (designId, newStatusIndex) => {
   try {
-    if (newStatusIndex <= 2) {
-      // Directly update trackingStep
-      await axios.patch(`/packing/${designId}/step`, { step: newStatusIndex });
-    } else if (newStatusIndex >= 3 && newStatusIndex <= 7) {
-      // Post-print phase (including Received in Factory)
-      const postPrintStep = newStatusIndex - 3;
-      await axios.patch(`/packing/${designId}/post-print-step`, {
-        step: postPrintStep,
-      });
-    } else if (newStatusIndex === 8 || newStatusIndex === 9) {
-      // Final tracking steps: In Progress (3) or Despatched (4)
-      const trackingStep = newStatusIndex - 5; // 8 → 3, 9 → 4
-      await axios.patch(`/packing/${designId}/step`, { step: trackingStep });
-    }
+    if (newStatusIndex < 2) {
+  // Customer Approved / QC Approved
+  await axios.patch(`/packing/${designId}/step`, { step: newStatusIndex });
+} else if (newStatusIndex === 2) {
+  // Sent for Printing → set trackingStep=2 and start postPrintStep=0
+  await axios.patch(`/packing/${designId}/step`, { step: 2 });
+  await axios.patch(`/packing/${designId}/post-print-step`, { step: 0 });
+} else if (newStatusIndex >= 3 && newStatusIndex <= 7) {
+  // Post-print phase
+  const postPrintStep = newStatusIndex - 3;
+  await axios.patch(`/packing/${designId}/post-print-step`, {
+    step: postPrintStep,
+  });
+} else if (newStatusIndex === 8 || newStatusIndex === 9) {
+  // Final tracking steps
+  const trackingStep = newStatusIndex - 5;
+  await axios.patch(`/packing/${designId}/step`, { step: trackingStep });
+}
 
     fetchSubmissions(); // Refresh data
   } catch (err) {
