@@ -77,37 +77,48 @@ const getCurrentStatusIndex = (item) => {
         Packing Tracking Progress
       </h2>
 
-      {submissions.map((item) => {
-        const currentIndex = getCurrentStatusIndex(item);
+   {submissions.map((item) => {
+  const currentIndex = getCurrentStatusIndex(item);
+  const currentStatus = statuses[currentIndex];
 
-        return (
-          <div key={item._id} className="border p-4 mb-4 rounded">
-            <p className="mb-2">
-              <strong>Customer:</strong> {item.customerId?.name || "Unknown"}
-            </p>
+  return (
+    <div key={item._id} className="border p-4 mb-4 rounded">
+      <p className="mb-1">
+        <strong>Customer:</strong> {item.customerId?.name || "Unknown"}
+      </p>
 
-            <p>
-              <strong>Current Step:</strong> {statuses[currentIndex]}
-            </p>
+      {/* 👇 Customer submission date & time */}
+      {item.createdAt && (
+        <p className="text-sm text-gray-600 mb-1">
+          <strong>Submitted On:</strong>{" "}
+          {new Date(item.createdAt).toLocaleString()}
+        </p>
+      )}
 
-            <select
-              value={currentIndex}
-              onChange={(e) =>
-                handleStepUpdate(item._id, parseInt(e.target.value))
-              }
-              className="mt-2 border p-2 rounded w-full"
-            >
-              {statuses.map((status, index) => (
-                <option key={index} value={index}>
-                  {status}
-                </option>
-              ))}
-            </select>
-          </div>
-        );
-      })}
+      <p className="mb-1">
+        <strong>Current Step:</strong> {currentStatus}
+      </p>
+
+      <select
+        value={currentIndex}
+        onChange={(e) =>
+          handleStepUpdate(item._id, parseInt(e.target.value))
+        }
+        className="mt-2 border p-2 rounded w-full"
+      >
+        {statuses.map((status, index) => (
+          <option key={index} value={index}>
+            {status}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+})}
+
     </div>
   );
 };
 
 export default AdminTracklineUpdate;
+  

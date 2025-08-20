@@ -9,6 +9,23 @@ const AvailablePackingDesign = require("../models/AvailablePackingDesign");
 const uploadDir = path.join(__dirname, "../uploads");
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
 
+
+// GET /packing/tracking/design/:designId
+router.get("/tracking/submission/:submissionId", async (req, res) => {
+  try {
+    const entry = await PackingDesign.findById(req.params.submissionId);
+
+    if (!entry) {
+      return res.status(404).json({ message: "No tracking found for this submission" });
+    }
+
+    res.json(entry);
+  } catch (err) {
+    console.error("Error fetching submission tracking:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 router.get("/tracking/:customerId", async (req, res) => {
   try {
    const entries = await PackingDesign.find({
@@ -56,7 +73,7 @@ router.post("/designs/upload", upload.single("designFile"), async (req, res) => 
       imageUrl: `/uploads/${file.filename}`, // ✅ Use file.filename (already saved by multer)
       label: req.body.label || "",
     });
-
+design.lastAdminUpdate = new Date();
     await newDesign.save();
     res.json({ message: "Design uploaded", data: newDesign });
   } catch (err) {
@@ -92,7 +109,7 @@ router.post("/upload-customer", upload.single("designFile"), async (req, res) =>
       selectedDesignFile: `/uploads/${filename}`,
       submitted: true,
     });
-
+design.lastAdminUpdate = new Date();
     await newEntry.save();
     res.json({ message: "Customer design uploaded", fileUrl: newEntry.selectedDesignFile });
   } catch (err) {
@@ -169,6 +186,7 @@ router.post("/send-edits/:designId", upload.array("files"), async (req, res) => 
         $set: {
           adminEditedDesigns: savedFiles,
           status: "Sent for Customer Approval",
+           lastAdminUpdate: new Date(),
         },
         $push: {
           history: { step: "Admin uploaded edited versions" },
@@ -247,6 +265,7 @@ router.post("/final-artwork-upload/:designId", upload.single("file"), async (req
         finalArtworkUrl: filePath,
         finalArtworkType: type,
         status: "Sent for Customer Approval",
+         lastAdminUpdate: new Date(),
         $push: { history: { step: "Admin uploaded final artwork" } },
       },
       { new: true }
@@ -313,6 +332,9 @@ router.get("/submitted", async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
+// GET /tracking/entry/:entryId
+
+
 
 
 
@@ -495,63 +517,77 @@ router.get("/history/:customerId", async (req, res) => {
 
 // PATCH /packing/:customerId/step
 // routes/packing.js or similar
+// PATCH trackingStep
 router.patch("/:id/step", async (req, res) => {
   try {
     const { step } = req.body;
+    const design = await PackingDesign.findById(req.params.id);
 
-    const updated = await PackingDesign.findByIdAndUpdate(
-      req.params.id,
-      {
-        trackingStep: step,
-        $push: {
-          history: { step: `Step changed to ${step}` },
-        },
-      },
-      { new: true }
-    );
-
-    if (!updated) {
+    if (!design) {
       return res.status(404).json({ message: "Packing design not found" });
     }
 
-    res.status(200).json(updated);
+    const prevStep = design.trackingStep ?? 0;
+
+    // If moving forward, push all skipped steps into history
+    let historyUpdates = [];
+    if (step > prevStep) {
+      for (let i = prevStep + 1; i <= step; i++) {
+        historyUpdates.push({ step: `Tracking step changed to ${i}` });
+      }
+    } else {
+      historyUpdates.push({ step: `Tracking step changed to ${step}` });
+    }
+
+    design.trackingStep = step;
+    design.history.push(...historyUpdates);
+
+    await design.save();
+    res.status(200).json(design);
   } catch (err) {
     console.error("Error updating tracking step:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
+
+// PATCH postPrintStep
 router.patch("/:id/post-print-step", async (req, res) => {
   try {
     const { step } = req.body;
+    const design = await PackingDesign.findById(req.params.id);
 
-    const updated = await PackingDesign.findByIdAndUpdate(
-      req.params.id,
-      {
-        postPrintStep: step,
-        $push: {
-          history: { step: `Post-Print Step changed to ${step}` },
-        },
-      },
-      { new: true }
-    );
-
-    if (!updated) {
+    if (!design) {
       return res.status(404).json({ message: "Packing design not found" });
     }
 
-    // Auto-transition logic
-    // if (step === 4) {
-    //   updated.trackingStep = 3;
-    //   updated.postPrintStep = null; // Optional cleanup
-    //   await updated.save();
-    // }
+    const prevStep = design.postPrintStep ?? -1;
+    let historyUpdates = [];
 
-    res.status(200).json(updated);
+    if (step > prevStep) {
+      for (let i = prevStep + 1; i <= step; i++) {
+        historyUpdates.push({ step: `Post-print step changed to ${i}` });
+      }
+    } else {
+      historyUpdates.push({ step: `Post-print step changed to ${step}` });
+    }
+
+    design.postPrintStep = step;
+    design.history.push(...historyUpdates);
+
+    // Auto-transition: if Received in Factory → move to In Progress
+    if (step === 4) {
+      design.trackingStep = 3;
+      historyUpdates.push({ step: "Tracking step changed to 3 (In Progress)" });
+    }
+
+    await design.save();
+    res.status(200).json(design);
   } catch (err) {
     console.error("Error updating post-print step:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
+
 
 // DELETE /packing/designs/:id — Delete an available packing design
 router.delete("/designs/:id", async (req, res) => {

@@ -33,6 +33,7 @@ finalArtworkType: { type: String, enum: ["image", "pdf"] },
         timestamp: { type: Date, default: Date.now },
       },
     ],
+       lastAdminUpdate: { type: Date, default: null },
   },
   { timestamps: true }
 );

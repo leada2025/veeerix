@@ -34,9 +34,9 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
     { label: "Trademark Records", path: "/admin/my-registered", icon: <FileText size={20} /> },
     { label: "Place Order", path: "/place-order", icon: <ShoppingCart size={20} /> },
     { label: "Design Approval", path: "/packing-approval", icon: <PackageCheck size={20} /> },
-    { label: "Packing Material Status", path: "/packmattrack", icon: <PackageCheck size={20} /> },
+    // { label: "Packing Material Status", path: "/packmattrack", icon: <PackageCheck size={20} /> },
     { label: "Packing Status", path: "/packing/status", icon: <PackageCheck size={20} /> },
-    { label: "Packing History", path: "/packing-history", icon: <PackageCheck size={20} /> },
+    // { label: "Packing History", path: "/packing-history", icon: <PackageCheck size={20} /> },
     // { label: "Status", path: "/status", icon: <Info size={20} /> },
     { label: "Distribution", path: "/distribution", icon: <Truck size={20} /> },
   ];

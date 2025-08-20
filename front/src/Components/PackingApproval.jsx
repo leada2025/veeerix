@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "../api/Axios";
 import { useNavigate } from "react-router-dom";
 import { BASE_URL } from "../api/config";
+import UnifiedPackingStatus from "./PackingStatusPage";
 
 const CustomerPackingPage = () => {
   const [designs, setDesigns] = useState([]);
@@ -9,7 +10,20 @@ const CustomerPackingPage = () => {
   const [history, setHistory] = useState([]);
   const [hasPending, setHasPending] = useState(false);
   const [activeTab, setActiveTab] = useState("select"); // select | status | history
+const [statusDot, setStatusDot] = useState(false);
+const [historyDot, setHistoryDot] = useState(false);
 
+const [confirmPopup, setConfirmPopup] = useState({
+  open: false,
+  entryId: null,
+  designUrl: null,
+});
+const stepLabels = [
+  "Select Design",
+  "Edited Version Sent",
+  "Customer Approved",
+  "Final Artwork Sent",
+];
   const navigate = useNavigate();
   const normalizeUrl = (url) => (url.startsWith("/") ? url : `/${url}`);
 
@@ -123,30 +137,107 @@ const CustomerPackingPage = () => {
     }
   };
 
+
+useEffect(() => {
+  if (history.length > 0) {
+    const latest = history[0];
+    const lastAdminUpdate = latest.lastAdminUpdate || null;
+
+    const seenTime = localStorage.getItem("statusSeenTime");
+
+    if (lastAdminUpdate && (!seenTime || new Date(lastAdminUpdate) > new Date(seenTime))) {
+      setStatusDot(true); // 🔴 show dot
+    } else {
+      setStatusDot(false); // ✅ hide if already seen
+    }
+  }
+}, [history]);
+
+
+
+
+useEffect(() => {
+  if (history.length > 0) {
+    const latest = history[0];
+    if (latest.status === "Approved") {
+      const approvedTime = latest.updatedAt || latest.createdAt;
+      const seenTime = localStorage.getItem("historySeenTime");
+      if (!seenTime || new Date(approvedTime) > new Date(seenTime)) {
+        setHistoryDot(true);
+      } else {
+        setHistoryDot(false);
+      }
+    }
+  }
+}, [history]);
+
+
+
   // ================= RENDER =================
   return (
-    <div className="max-w-5xl mx-auto mt-10 p-6 bg-white shadow rounded">
+    <div className="max-w-6xl mx-auto mt-10 p-4">
       {/* Tabs */}
-      <div className="flex gap-6  mb-6">
-        <button
-          className={`pb-2 ${activeTab === "select" ? "border-b-2 border-[#d1383a] font-semibold text-[#d1383a]" : "text-gray-600"}`}
-          onClick={() => setActiveTab("select")}
-        >
-          Select Design
-        </button>
-        <button
-          className={`pb-2 ${activeTab === "status" ? "border-b-2 border-[#d1383a] font-semibold text-[#d1383a]" : "text-gray-600"}`}
-          onClick={() => setActiveTab("status")}
-        >
-          Design Status
-        </button>
-        <button
-          className={`pb-2 ${activeTab === "history" ? "border-b-2 border-[#d1383a] font-semibold text-[#d1383a]" : "text-gray-600"}`}
-          onClick={() => setActiveTab("history")}
-        >
-          History
-        </button>
-      </div>
+      <div className="flex gap-6 mb-6">
+  {/* Select Design */}
+  <button
+    className={`relative pb-2 ${activeTab === "select" ? "border-b-2 border-[#d1383a] font-semibold text-[#d1383a]" : "text-gray-600"}`}
+    onClick={() => setActiveTab("select")}
+  >
+    Select Design
+  </button>
+
+<button
+  className={`relative pb-2 ${
+    activeTab === "status"
+      ? "border-b-2 border-[#d1383a] font-semibold text-[#d1383a]"
+      : "text-gray-600"
+  }`}
+  onClick={() => {
+    setActiveTab("status");
+    setStatusDot(false); // hide dot visually
+
+    if (history.length > 0) {
+      const latest = history[0];
+      if (latest.lastAdminUpdate) {
+        localStorage.setItem("statusSeenTime", latest.lastAdminUpdate);
+      } else {
+        localStorage.setItem("statusSeenTime", new Date().toISOString());
+      }
+    }
+  }}
+>
+  Design Status
+  {statusDot && <span className="heartbeat-dot"></span>}
+</button>
+
+
+
+
+
+{/* History */}
+<button
+  className={`relative pb-2 ${
+    activeTab === "history"
+      ? "border-b-2 border-[#d1383a] font-semibold text-[#d1383a]"
+      : "text-gray-600"
+  }`}
+  onClick={() => {
+    setActiveTab("history");
+    setHistoryDot(false);
+    if (history.length > 0) {
+      const latest = history[0];
+      if (latest.status === "Approved") {
+        const approvedTime = latest.updatedAt || latest.createdAt;
+        localStorage.setItem("historySeenTime", approvedTime);
+      }
+    }
+  }}
+>
+  History
+  {historyDot && <span className="heartbeat-dot"></span>}
+</button>
+
+</div>
 
       {/* Tab Content */}
       {activeTab === "select" && (
@@ -167,6 +258,8 @@ const CustomerPackingPage = () => {
           handleApprove={handleApprove}
           handleReject={handleReject}
           navigate={navigate}
+           confirmPopup={confirmPopup}        // 👈 added
+    setConfirmPopup={setConfirmPopup}  
         />
       )}
 
@@ -251,253 +344,459 @@ const DesignStatusTab = ({
   handleApprove,
   handleReject,
   navigate,
+  confirmPopup,
+  setConfirmPopup,
 }) => {
   if (!history.length)
     return <p className="text-gray-600">No designs in progress.</p>;
 
-  const latest = history[0]; // show latest active submission
+  // Define steps
+  const stepLabels = [
+    "Select Design",
+    "Admin Edited Version Sent",
+    "Select Final Design",
+    "Approve Final Artwork",
+  ];
+
+  // Helper: get completion timestamp per step
+  const getStepTimestamp = (entry, index) => {
+    switch (index) {
+      case 0:
+        return entry.createdAt;
+      case 1:
+        return entry.adminEditedDesigns?.length > 0
+          ? entry.updatedAt
+          : null;
+      case 2:
+        return entry.selectedFinalDesign ? entry.updatedAt : null;
+      case 3:
+        return entry.status === "Approved" ? entry.updatedAt : null;
+      default:
+        return null;
+    }
+  };
 
   return (
-    <div>
+    <div className="p-4">
       <h3 className="text-lg font-semibold mb-4 text-[#d1383a]">
         Current Design Status
       </h3>
 
-      <div
-        key={latest._id}
-        className="border rounded p-4 shadow bg-gray-50"
-      >
-        <p className="font-medium mb-1">Status: {latest.status}</p>
-        <p className="text-sm text-gray-500">
-          Submitted: {new Date(latest.createdAt).toLocaleString()}
-        </p>
-
-        {latest.status === "Pending" && (
-          <p className="text-sm text-blue-600 mt-1">
-            Waiting for admin to review your selections...
-          </p>
-        )}
-
-        {latest.selectedDesignIds?.length > 0 && (
-          <div className="mt-3">
-            <p className="text-sm font-medium">Your Selected Designs</p>
-            <div className="flex gap-4 mt-1">
-              {latest.selectedDesignIds.map((design, idx) => (
-                <img
-                  key={idx}
-                  src={`${BASE_URL}${design.imageUrl}`}
-                  className="w-40 rounded"
-                  alt="Selected"
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {latest.status === "Pending" && (
-          <div className="mt-4">
-            <button
-              onClick={() => handleCancelSubmission(latest._id)}
-              className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-            >
-              Cancel This Submission
-            </button>
-            <p className="text-sm text-gray-500 mt-1">
-              You can reselect designs after cancellation.
+      {history.map((entry) => (
+        <div
+          key={entry._id}
+          className="grid grid-cols-1 md:grid-cols-2 gap-6 border rounded p-4 shadow bg-gray-50 mb-4"
+        >
+          {/* ---------- LEFT SIDE: FULL LOGIC (your existing flow) ---------- */}
+          <div>
+            {/* Status + Timestamp */}
+            <p className="font-medium mb-1">Status: {entry.status}</p>
+            <p className="text-sm text-gray-500">
+              Submitted: {new Date(entry.createdAt).toLocaleString()}
             </p>
-          </div>
-        )}
 
-        {/* 1. Admin-edited designs to choose from */}
-        {latest.adminEditedDesigns?.length > 0 &&
-          latest.status === "Sent for Customer Approval" &&
-          !latest.selectedFinalDesign && (
-            <div className="mt-4 border-l-4 border-yellow-500 pl-4 bg-yellow-50 p-2 rounded">
-              <p className="text-sm font-medium text-yellow-800">
-                Admin has sent back {latest.adminEditedDesigns.length} edited
-                design(s).
+            {/* Pending Notice */}
+            {entry.status === "Pending" && (
+              <p className="text-sm text-blue-600 mt-1">
+                Waiting for admin to review your selections...
               </p>
-              <p className="text-sm mt-1 text-gray-700">
-                Please select your preferred version below.
-              </p>
+            )}
 
-              <div className="flex gap-4 mt-2">
-                {latest.adminEditedDesigns.map((edit, idx) => {
-                  const isSelected = latest.selectedFinalDesign === edit.url;
-                  return (
-                    <div key={idx} className="flex flex-col items-center">
-                      <div className="relative group">
-                        <img
-                          src={`${BASE_URL}${normalizeUrl(edit.url)}`}
-                          className={`w-full h-24 object-cover rounded cursor-pointer transition-all ${
-                            isSelected
-                              ? "ring-2 ring-[#d1383a]"
-                              : "hover:ring-2 hover:ring-gray-400"
-                          }`}
-                          onClick={() =>
-                            handleSelectFinalDesign(latest._id, edit.url)
-                          }
-                          alt={`Edited ${idx + 1}`}
-                        />
-                        <a
-                          href={`${BASE_URL}${normalizeUrl(edit.url)}`}
-                          download
-                          className="text-xs text-blue-600 underline mt-1 block text-center"
-                        >
-                          Download
-                        </a>
-                      </div>
-
-                      {isSelected && (
-                        <span className="text-xs text-[#d1383a] mt-1 font-semibold">
-                          Selected
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
+            {/* Selected Designs */}
+            {entry.selectedDesignIds?.length > 0 && (
+              <div className="mt-3">
+                <p className="text-sm font-medium">Your Selected Designs</p>
+                <div className="flex gap-4 mt-1">
+                  {entry.selectedDesignIds.map((design, idx) => (
+                    <img
+                      key={idx}
+                      src={`${BASE_URL}${design.imageUrl}`}
+                      className="w-40 rounded"
+                      alt="Selected"
+                    />
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
-
-        {/* 2. Selected final design */}
-        {latest.selectedFinalDesign && (
-          <div className="mt-4">
-            <p className="text-sm font-medium text-green-700">
-              Your Selected Edited Design
-            </p>
-            {latest.status !== "Approved" && (
-              <p className="text-sm text-green-700 mt-1">
-                You've selected your preferred version. Waiting for final
-                artwork from admin.
-              </p>
             )}
 
-            <div className="mt-2 flex flex-col items-start gap-2">
-              <img
-                src={`${BASE_URL}${normalizeUrl(latest.selectedFinalDesign)}`}
-                alt="Final Selection"
-                className="w-32 h-32 object-cover rounded border border-[#d1383a]"
-              />
-              <a
-                href={`${BASE_URL}${normalizeUrl(latest.selectedFinalDesign)}`}
-                download
-                className="text-sm text-blue-600 underline"
-              >
-                Download Selected Design
-              </a>
-            </div>
-          </div>
-        )}
-
-        {/* Final artwork preview */}
-        {latest.finalArtworkUrl && (
-          <>
-            {latest.status !== "Approved" && (
-              <p className="text-sm text-purple-700 mb-1">
-                Final artwork is ready! Please preview and approve.
-              </p>
-            )}
-            <div className="mt-4">
-              <p className="text-sm font-medium">Final Artwork</p>
-              {latest.finalArtworkType === "pdf" ? (
-                <a
-                  href={`${BASE_URL}/${latest.finalArtworkUrl}`}
-                  className="text-blue-600 underline"
-                  download
+            {/* Cancel Submission if Pending */}
+            {entry.status === "Pending" && (
+              <div className="mt-4">
+                <button
+                  onClick={() => handleCancelSubmission(entry._id)}
+                  className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
                 >
-                  Download PDF
-                </a>
-              ) : (
-                <img
-                  src={`${BASE_URL}/${latest.finalArtworkUrl}`}
-                  className="w-32 mt-1 rounded"
-                  alt="Final"
-                />
+                  Cancel This Submission
+                </button>
+                <p className="text-sm text-gray-500 mt-1">
+                  You can reselect designs after cancellation.
+                </p>
+              </div>
+            )}
+
+            {/* Admin Edited Designs */}
+            {entry.adminEditedDesigns?.length > 0 &&
+              entry.status === "Sent for Customer Approval" &&
+              !entry.selectedFinalDesign && (
+                <div className="mt-4 border-l-4 border-yellow-500 pl-4 bg-yellow-50 p-2 rounded">
+                  <p className="text-sm font-medium text-yellow-800">
+                    Admin has sent back {entry.adminEditedDesigns.length} edited
+                    design(s).
+                  </p>
+                  <p className="text-sm mt-1 text-gray-700">
+                    Please select your preferred version below.
+                  </p>
+
+                  <div className="flex gap-4 mt-2">
+                    {entry.adminEditedDesigns.map((edit, idx) => {
+                      const isSelected =
+                        entry.selectedFinalDesign === edit.url;
+                      return (
+                        <div key={idx} className="flex flex-col items-center">
+                          <div className="relative group">
+                            <img
+                              src={`${BASE_URL}${normalizeUrl(edit.url)}`}
+                              className={`w-full h-24 object-cover rounded cursor-pointer transition-all ${
+                                isSelected
+                                  ? "ring-2 ring-[#d1383a]"
+                                  : "hover:ring-2 hover:ring-gray-400"
+                              }`}
+                              onClick={() =>
+                                setConfirmPopup({
+                                  open: true,
+                                  entryId: entry._id,
+                                  designUrl: edit.url,
+                                })
+                              }
+                              alt={`Edited ${idx + 1}`}
+                            />
+                            <a
+                              href={`${BASE_URL}${normalizeUrl(edit.url)}`}
+                              download
+                              className="text-xs text-blue-600 underline mt-1 block text-center"
+                            >
+                              Download
+                            </a>
+                          </div>
+                          {isSelected && (
+                            <span className="text-xs text-[#d1383a] mt-1 font-semibold">
+                              Selected
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               )}
-            </div>
-          </>
-        )}
 
-        {latest.status === "Sent for Customer Approval" &&
-          latest.finalArtworkUrl && (
-            <div className="mt-4 space-y-2">
-              <a
-                href={`${BASE_URL}/${latest.finalArtworkUrl}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block text-blue-600 underline"
-              >
-                View Final Artwork
-              </a>
-              <button
-                onClick={() => handleApprove(latest._id)}
-                className="bg-[#d1383a] text-white px-4 py-2 rounded mr-2"
-              >
-                Approve
-              </button>
-              <details className="mt-2">
-                <summary className="cursor-pointer text-sm text-gray-700 underline">
-                  Reject
-                </summary>
-                <RejectBox entryId={latest._id} onReject={handleReject} />
-              </details>
-            </div>
-          )}
+            {/* ✅ Confirmation Popup */}
+            {confirmPopup.open && (
+              <div className="fixed inset-0 flex items-center justify-center bg-black/10 bg-opacity z-50">
+                <div className="bg-white p-6 rounded-lg shadow-lg w-80">
+                  <h2 className="text-lg font-semibold mb-4 text-gray-800">
+                    Confirm Selection
+                  </h2>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Are you sure you want to select this design as your final
+                    choice?
+                  </p>
+                  <div className="flex justify-end gap-4">
+                    <button
+                      className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
+                      onClick={() =>
+                        setConfirmPopup({
+                          open: false,
+                          entryId: null,
+                          designUrl: null,
+                        })
+                      }
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      className="px-4 py-2 bg-[#d1383a] text-white rounded hover:bg-[#a12d2f]"
+                      onClick={() => {
+                        handleSelectFinalDesign(
+                          confirmPopup.entryId,
+                          confirmPopup.designUrl
+                        );
+                        setConfirmPopup({
+                          open: false,
+                          entryId: null,
+                          designUrl: null,
+                        });
+                      }}
+                    >
+                      Confirm
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
-        {latest.status === "Approved" && (
-          <div className="mt-3">
-            <button
-              className="text-[#d1383a] underline text-sm"
-              onClick={() => navigate("/packing/status")}
-            >
-              Track Progress →
-            </button>
+            {/* Final Design Selected */}
+            {entry.selectedFinalDesign && (
+              <div className="mt-4">
+                <p className="text-sm font-medium text-green-700">
+                  Your Selected Edited Design
+                </p>
+                {entry.status !== "Approved" && (
+                  <p className="text-sm text-green-700 mt-1">
+                    You've selected your preferred version. Waiting for final
+                    artwork from admin.
+                  </p>
+                )}
+                <div className="mt-2 flex flex-col items-start gap-2">
+                  <img
+                    src={`${BASE_URL}${normalizeUrl(
+                      entry.selectedFinalDesign
+                    )}`}
+                    alt="Final Selection"
+                    className="w-32 h-32 object-cover rounded border border-[#d1383a]"
+                  />
+                  <a
+                    href={`${BASE_URL}${normalizeUrl(entry.selectedFinalDesign)}`}
+                    download
+                    className="text-sm text-blue-600 underline"
+                  >
+                    Download Selected Design
+                  </a>
+                </div>
+              </div>
+            )}
+
+            {/* Final Artwork Preview */}
+            {entry.finalArtworkUrl && (
+              <>
+                {entry.status !== "Approved" && (
+                  <p className="text-sm text-purple-700 mb-1">
+                    Final artwork is ready! Please preview and approve.
+                  </p>
+                )}
+                <div className="mt-4">
+                  <p className="text-sm font-medium">Final Artwork</p>
+                  {entry.finalArtworkType === "pdf" ? (
+                    <a
+                      href={`${BASE_URL}/${entry.finalArtworkUrl}`}
+                      className="text-blue-600 underline"
+                      download
+                    >
+                      Download PDF
+                    </a>
+                  ) : (
+                    <img
+                      src={`${BASE_URL}/${entry.finalArtworkUrl}`}
+                      className="w-32 mt-1 rounded"
+                      alt="Final"
+                    />
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* Approve / Reject Buttons */}
+            {entry.status === "Sent for Customer Approval" &&
+              entry.finalArtworkUrl && (
+                <div className="mt-4 space-y-2">
+                  <a
+                    href={`${BASE_URL}/${entry.finalArtworkUrl}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block text-blue-600 underline"
+                  >
+                    View Final Artwork
+                  </a>
+                  <button
+                    onClick={() => handleApprove(entry._id)}
+                    className="bg-[#d1383a] text-white px-4 py-2 rounded mr-2"
+                  >
+                    Approve
+                  </button>
+                  <details className="mt-2">
+                    <summary className="cursor-pointer text-sm text-gray-700 underline">
+                      Reject
+                    </summary>
+                    <RejectBox entryId={entry._id} onReject={handleReject} />
+                  </details>
+                </div>
+              )}
+
+            {/* Approved → Track */}
+            {entry.status === "Approved" && (
+              <div className="mt-3">
+                <button
+                  className="text-[#d1383a] underline text-sm"
+                  onClick={() => navigate("/packing/status")}
+                >
+                  Track Progress →
+                </button>
+              </div>
+            )}
+
+            {/* Rejection Reason */}
+            {entry.status === "Pending" && entry.rejectionReason && (
+              <p className="mt-2 text-sm text-red-600">
+                Rejected previously: {entry.rejectionReason}
+              </p>
+            )}
           </div>
-        )}
 
-        {latest.status === "Pending" && latest.rejectionReason && (
-          <p className="mt-2 text-sm text-red-600">
-            Rejected previously: {latest.rejectionReason}
+          {/* ---------- RIGHT SIDE: TRACKER ---------- */}
+       <div className="relative border-l-4 border-gray-200 pl-8 mt-6">
+  {stepLabels.map((label, index) => {
+    const timestamp = getStepTimestamp(entry, index);
+    const completed = Boolean(timestamp);
+
+    return (
+      <div key={label} className="mb-10  relative">
+        {/* Step Circle with Number */}
+        <div
+          className={`absolute -left-6 top-1 flex items-center justify-center w-10 h-10 rounded-full text-white text-sm font-bold shadow-md ${
+            completed ? "bg-[#d1383a]" : "bg-gray-400"
+          }`}
+        >
+          {index + 1}
+        </div>
+
+        {/* Step Content */}
+        <div className="ml-10">
+          <p
+            className={`text-base font-semibold ${
+              completed ? "text-[#d1383a]" : "text-gray-600"
+            }`}
+          >
+            {label}
           </p>
-        )}
+          {timestamp ? (
+            <p className="text-xs text-gray-500 mt-1">
+              ✅ Completed on {new Date(timestamp).toLocaleString()}
+            </p>
+          ) : (
+            <p className="text-xs text-gray-400 mt-1">
+              ⏳ Pending
+            </p>
+          )}
+        </div>
       </div>
+    );
+  })}
+</div>
+
+        </div>
+      ))}
     </div>
   );
 };
 
+const HistoryTab = ({ history, BASE_URL }) => {
+  const [open, setOpen] = useState(false);
+  const [selectedSubmissionId, setSelectedSubmissionId] = useState(null);
+  const [submissionUpdates, setSubmissionUpdates] = useState({});
 
-const HistoryTab = ({ history, BASE_URL }) => (
-  <div>
-    <h3 className="text-lg font-semibold mb-4 text-[#d1383a]">Your Submission History</h3>
-    {history.length === 0 ? (
-      <p className="text-gray-600">No submissions yet.</p>
-    ) : (
-      <ul className="space-y-4">
-        {history.map((entry) => (
-          <li key={entry._id} className="border rounded p-3 bg-gray-50 shadow">
-            <p className="font-medium">Status: {entry.status}</p>
-            <p className="text-sm text-gray-500">
-              Submitted: {new Date(entry.createdAt).toLocaleString()}
-            </p>
-            {entry.selectedDesignIds?.length > 0 && (
-              <div className="mt-2 flex gap-2">
-                {entry.selectedDesignIds.map((design, idx) => (
-                  <img
-                    key={idx}
-                    src={`${BASE_URL}${design.imageUrl}`}
-                    className="w-20 h-20 object-cover rounded"
-                    alt="Selected"
-                  />
-                ))}
+  const openTracking = (submissionId, designs) => {
+    setSelectedSubmissionId(submissionId);
+    setOpen(true);
+
+    // mark all designs as seen
+    designs.forEach((design) => {
+      if (design.lastAdminUpdate) {
+        localStorage.setItem(`submissionSeen_${design._id}`, design.lastAdminUpdate);
+      }
+    });
+
+    // hide red dot for this submission
+    setSubmissionUpdates((prev) => ({ ...prev, [submissionId]: false }));
+  };
+
+  // compute red dots whenever history changes
+  useEffect(() => {
+    const updates = {};
+    history.forEach((entry) => {
+      let showDot = false;
+      entry.selectedDesignIds?.forEach((design) => {
+        const lastSeen = localStorage.getItem(`submissionSeen_${design._id}`);
+        const lastAdminUpdate = design.lastAdminUpdate;
+        if (lastAdminUpdate && (!lastSeen || new Date(lastAdminUpdate) > new Date(lastSeen))) {
+          showDot = true;
+        }
+      });
+      updates[entry._id] = showDot;
+    });
+    setSubmissionUpdates(updates);
+  }, [history]);
+
+  return (
+    <div className="mt-6">
+      <h3 className="text-lg font-semibold mb-4 text-[#d1383a]">
+        Your Submission History
+      </h3>
+
+      {history?.length === 0 ? (
+        <p className="text-gray-600">No submissions yet.</p>
+      ) : (
+        <ul className="space-y-4">
+          {history.map((entry) => (
+            <li
+              key={entry._id}
+              className="border rounded p-3 bg-gray-50 shadow flex justify-between items-center"
+            >
+              {/* Left side: status + thumbnails */}
+              <div className="flex flex-col">
+                <p className="font-medium">Status: {entry.status}</p>
+                <p className="text-sm text-gray-500">
+                  Submitted: {new Date(entry.createdAt).toLocaleString()}
+                </p>
+                {entry.selectedDesignIds?.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-4">
+                    {entry.selectedDesignIds.map((design) => (
+                      <img
+                        key={design._id}
+                        src={`${BASE_URL}${design.imageUrl}`}
+                        className="w-16 h-16 object-cover rounded border"
+                        alt="Selected"
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
-          </li>
-        ))}
-      </ul>
-    )}
-  </div>
-);
+
+              {/* Trackline button */}
+              <button
+                onClick={() => openTracking(entry._id, entry.selectedDesignIds)}
+                className="ml-4 px-4 py-2 bg-[#d1383a] text-white rounded-lg text-sm shadow hover:bg-[#b52f32] relative"
+              >
+                Trackline
+                {submissionUpdates[entry._id] && (
+                  <span className="absolute top-0 -right-1 w-3 h-3 rounded-full bg-blue-500 animate-ping" />
+                )}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {open && selectedSubmissionId && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/40">
+          <div className="bg-white rounded-2xl shadow-lg w-full max-w-3xl max-h-[80vh] overflow-y-auto relative p-6">
+            <button
+              onClick={() => setOpen(false)}
+              className="absolute top-3 right-3 text-gray-600 hover:text-red-500 text-lg"
+            >
+              ✕
+            </button>
+
+            <UnifiedPackingStatus
+              isPopup
+              submissionId={selectedSubmissionId}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 
 const RejectBox = ({ entryId, onReject }) => {
   const [reason, setReason] = useState("");
