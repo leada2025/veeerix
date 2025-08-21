@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const API = axios.create({
-  baseURL: "https://veeerix.onrender.com",
+  baseURL: "http://localhost:5000",
   withCredentials: true, // if you're using cookies for auth
 });
 

@@ -100,8 +100,9 @@ router.post("/designs/upload", upload.single("designFile"), async (req, res) => 
     const newDesign = new AvailablePackingDesign({
       imageUrl: `/uploads/${file.filename}`, // ✅ Use file.filename (already saved by multer)
       label: req.body.label || "",
+      lastAdminUpdate: new Date(), // ✅ directly set here
     });
-design.lastAdminUpdate = new Date();
+
     await newDesign.save();
     res.json({ message: "Design uploaded", data: newDesign });
   } catch (err) {
@@ -109,6 +110,7 @@ design.lastAdminUpdate = new Date();
     res.status(500).json({ message: "Upload error", error: err.message });
   }
 });
+
 
 // GET /packing/designs — Fetch all available designs
 router.get("/designs", async (req, res) => {
