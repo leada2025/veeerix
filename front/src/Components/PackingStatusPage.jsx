@@ -115,6 +115,14 @@ const UnifiedPackingStatus = ({ isPopup = false, submissionId = null }) => {
                         </span>
                       </p>
                     )}
+                       <p className="text-sm text-gray-700 mt-2">
+      <span className="font-semibold">Trademark:</span>{" "}
+      <span className="text-[#d1383a]">{entry.trademarkName || "-"}</span>
+    </p>
+    <p className="text-sm text-gray-700">
+      <span className="font-semibold">Molecule:</span>{" "}
+      <span className="text-[#d1383a]">{entry.moleculeName || "-"}</span>
+    </p>
                   </div>
                   <span className="px-3 py-1 text-xs rounded-full bg-[#d1383a]/10 text-[#d1383a] font-semibold">
                     {stepLabels[effectiveStep]}

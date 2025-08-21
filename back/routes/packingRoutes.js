@@ -9,6 +9,34 @@ const AvailablePackingDesign = require("../models/AvailablePackingDesign");
 const uploadDir = path.join(__dirname, "../uploads");
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
 
+const TrademarkSuggestion = require("../models/TrademarkSuggestion");
+const BrandRequest = require("../models/BrandRequest");
+
+// ✅ Fix: use paymentCompleted instead of status
+router.get("/trademarks", async (req, res) => {
+  try {
+    const trademarks = await TrademarkSuggestion.find({ paymentCompleted: true })
+      .select("selectedName"); // or .select("selectedName trackingStatus") if needed
+
+    res.json(trademarks);
+  } catch (err) {
+    console.error("Error fetching trademarks:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+
+// GET /packing/molecules — fetch all available molecule names
+router.get("/molecules", async (req, res) => {
+  try {
+    const molecules = await BrandRequest.find({ status: "Paid" })
+      .select("moleculeName customMolecule"); // include both
+    res.json(molecules);
+  } catch (err) {
+    console.error("Error fetching molecules:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
 
 // GET /packing/tracking/design/:designId
 router.get("/tracking/submission/:submissionId", async (req, res) => {
@@ -148,21 +176,32 @@ const design = await PackingDesign.findOneAndUpdate(
 });
 
 router.post("/submit", async (req, res) => {
-  const { customerId, selectedDesignIds } = req.body;
+  const { customerId, selectedDesignIds, trademarkName, moleculeName } = req.body;
 
   try {
+    // Basic validation
+    if (!customerId || !trademarkName || !moleculeName || !selectedDesignIds?.length) {
+      return res.status(400).json({
+        message: "customerId, trademarkName, moleculeName and at least one design are required",
+      });
+    }
+
     const newEntry = new PackingDesign({
       customerId,
+      trademarkName,
+      moleculeName,
       selectedDesignIds,
       submitted: true,
     });
 
     await newEntry.save();
-    res.json({ message: "Submitted" });
+    res.json({ message: "Submitted successfully", data: newEntry });
   } catch (err) {
+    console.error("Error saving PackingDesign:", err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 });
+
 
 
 

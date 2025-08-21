@@ -9,9 +9,15 @@ const CustomerPackingPage = () => {
   const [selectedDesigns, setSelectedDesigns] = useState([]);
   const [history, setHistory] = useState([]);
   const [hasPending, setHasPending] = useState(false);
-  const [activeTab, setActiveTab] = useState("select"); // select | status | history
+ const [activeTab, setActiveTab] = useState("trademark"); // trademark | select | status | history
+// select | status | history
 const [statusDot, setStatusDot] = useState(false);
 const [historyDot, setHistoryDot] = useState(false);
+
+const [trademarks, setTrademarks] = useState([]);
+const [molecules, setMolecules] = useState([]);
+const [selectedTrademark, setSelectedTrademark] = useState(null);
+const [selectedMolecule, setSelectedMolecule] = useState(null);
 
 const [confirmPopup, setConfirmPopup] = useState({
   open: false,
@@ -19,6 +25,7 @@ const [confirmPopup, setConfirmPopup] = useState({
   designUrl: null,
 });
 const stepLabels = [
+   "Trademark & Molecule Selected",
   "Select Design",
   "Edited Version Sent",
   "Customer Approved",
@@ -76,22 +83,31 @@ const stepLabels = [
     }
   };
 
-  const handleSubmit = async () => {
-    if (selectedDesigns.length < 2 || !customerId) return;
-    try {
-      const selectedIds = selectedDesigns.map((d) => d.id);
-      await axios.post("/packing/submit", {
-        customerId,
-        selectedDesignIds: selectedIds,
-      });
-      setSelectedDesigns([]);
-      const res = await axios.get(`/packing/history/${customerId}`);
-      setHistory(res.data);
-      setActiveTab("status"); // Move to status after submission
-    } catch (err) {
-      console.error(err.response?.data || err.message);
-    }
-  };
+const handleSubmit = async () => {
+  if (selectedDesigns.length < 2 || !customerId) return;
+  if (!selectedTrademark || !selectedMolecule) {
+    alert("Please select trademark & molecule first");
+    return;
+  }
+
+  try {
+    const selectedIds = selectedDesigns.map((d) => d.id);
+    await axios.post("/packing/submit", {
+      customerId,
+      trademarkName: selectedTrademark,
+      moleculeName: selectedMolecule,
+      selectedDesignIds: selectedIds,
+    });
+
+    setSelectedDesigns([]);
+    const res = await axios.get(`/packing/history/${customerId}`);
+    setHistory(res.data);
+    setActiveTab("status"); // Move to status after submission
+  } catch (err) {
+    console.error(err.response?.data || err.message);
+  }
+};
+
 
   const handleApprove = async (entryId) => {
     try {
@@ -140,16 +156,15 @@ const stepLabels = [
 
 useEffect(() => {
   if (history.length > 0) {
-    const latest = history[0];
-    const lastAdminUpdate = latest.lastAdminUpdate || null;
+    const seenTime = new Date(localStorage.getItem("statusSeenTime") || 0);
 
-    const seenTime = localStorage.getItem("statusSeenTime");
+    // find if ANY submission has a newer admin update than what we saw
+    const hasNewUpdate = history.some((entry) => {
+      const updateTime = entry.lastAdminUpdate ? new Date(entry.lastAdminUpdate) : null;
+      return updateTime && updateTime > seenTime;
+    });
 
-    if (lastAdminUpdate && (!seenTime || new Date(lastAdminUpdate) > new Date(seenTime))) {
-      setStatusDot(true); // 🔴 show dot
-    } else {
-      setStatusDot(false); // ✅ hide if already seen
-    }
+    setStatusDot(hasNewUpdate);
   }
 }, [history]);
 
@@ -158,26 +173,55 @@ useEffect(() => {
 
 useEffect(() => {
   if (history.length > 0) {
-    const latest = history[0];
-    if (latest.status === "Approved") {
-      const approvedTime = latest.updatedAt || latest.createdAt;
-      const seenTime = localStorage.getItem("historySeenTime");
-      if (!seenTime || new Date(approvedTime) > new Date(seenTime)) {
-        setHistoryDot(true);
-      } else {
-        setHistoryDot(false);
+    const seenTime = new Date(localStorage.getItem("historySeenTime") || 0);
+
+    const hasNewApproved = history.some((entry) => {
+      if (entry.status === "Approved") {
+        const approvedTime = new Date(entry.updatedAt || entry.createdAt);
+        return approvedTime > seenTime;
       }
-    }
+      return false;
+    });
+
+    setHistoryDot(hasNewApproved);
   }
 }, [history]);
 
 
+useEffect(() => {
+  const fetchOptions = async () => {
+    try {
+      const [tmRes, molRes] = await Promise.all([
+        axios.get("/packing/trademarks"),
+        axios.get("/packing/molecules"),
+      ]);
+      setTrademarks(tmRes.data);
+      setMolecules(molRes.data);
+    } catch (err) {
+      console.error("Error fetching trademark/molecule:", err);
+    }
+  };
+  fetchOptions();
+}, []);
 
   // ================= RENDER =================
   return (
     <div className="max-w-6xl mx-auto mt-10 p-4">
       {/* Tabs */}
       <div className="flex gap-6 mb-6">
+
+      {/* Trademark & Molecule */}
+<button
+  className={`relative pb-2 ${
+    activeTab === "trademark"
+      ? "border-b-2 border-[#d1383a] font-semibold text-[#d1383a]"
+      : "text-gray-600"
+  }`}
+  onClick={() => setActiveTab("trademark")}
+>
+  Trademark & Molecule
+</button>
+
   {/* Select Design */}
   <button
     className={`relative pb-2 ${activeTab === "select" ? "border-b-2 border-[#d1383a] font-semibold text-[#d1383a]" : "text-gray-600"}`}
@@ -196,13 +240,14 @@ useEffect(() => {
     setActiveTab("status");
     setStatusDot(false); // hide dot visually
 
-    if (history.length > 0) {
-      const latest = history[0];
-      if (latest.lastAdminUpdate) {
-        localStorage.setItem("statusSeenTime", latest.lastAdminUpdate);
-      } else {
-        localStorage.setItem("statusSeenTime", new Date().toISOString());
-      }
+  if (history.length > 0) {
+  const latestUpdate = history.reduce((latest, entry) => {
+    const update = entry.lastAdminUpdate ? new Date(entry.lastAdminUpdate) : null;
+    return update && update > latest ? update : latest;
+  }, new Date(0));
+
+  localStorage.setItem("statusSeenTime", latestUpdate.toISOString());
+
     }
   }}
 >
@@ -225,12 +270,18 @@ useEffect(() => {
     setActiveTab("history");
     setHistoryDot(false);
     if (history.length > 0) {
-      const latest = history[0];
-      if (latest.status === "Approved") {
-        const approvedTime = latest.updatedAt || latest.createdAt;
-        localStorage.setItem("historySeenTime", approvedTime);
-      }
+  const latestApproved = history.reduce((latest, entry) => {
+    if (entry.status === "Approved") {
+      const approvedTime = new Date(entry.updatedAt || entry.createdAt);
+      return approvedTime > latest ? approvedTime : latest;
     }
+    return latest;
+  }, new Date(0));
+
+  if (latestApproved > new Date(0)) {
+    localStorage.setItem("historySeenTime", latestApproved.toISOString());
+  }
+}
   }}
 >
   History
@@ -238,6 +289,19 @@ useEffect(() => {
 </button>
 
 </div>
+
+{activeTab === "trademark" && (
+  <TrademarkTab
+    trademarks={trademarks}
+    molecules={molecules}
+    selectedTrademark={selectedTrademark}
+    selectedMolecule={selectedMolecule}
+    setSelectedTrademark={setSelectedTrademark}
+    setSelectedMolecule={setSelectedMolecule}
+    setActiveTab={setActiveTab}
+  />
+)}
+
 
       {/* Tab Content */}
       {activeTab === "select" && (
@@ -352,6 +416,7 @@ const DesignStatusTab = ({
 
   // Define steps
   const stepLabels = [
+    "Trademark & Molecule Selected",
     "Select Design",
     "Admin Edited Version Sent",
     "Select Final Design",
@@ -359,22 +424,28 @@ const DesignStatusTab = ({
   ];
 
   // Helper: get completion timestamp per step
-  const getStepTimestamp = (entry, index) => {
-    switch (index) {
-      case 0:
-        return entry.createdAt;
-      case 1:
-        return entry.adminEditedDesigns?.length > 0
-          ? entry.updatedAt
-          : null;
-      case 2:
-        return entry.selectedFinalDesign ? entry.updatedAt : null;
-      case 3:
-        return entry.status === "Approved" ? entry.updatedAt : null;
-      default:
-        return null;
-    }
-  };
+ const getStepTimestamp = (entry, index) => {
+  switch (index) {
+    case 0: // Trademark & Molecule Selected
+      return entry.createdAt || null;
+
+    case 1: // Select Design
+      return entry.selectedDesignIds?.length > 0 ? entry.updatedAt : null;
+
+    case 2: // Admin Edited Version Sent
+      return entry.adminEditedDesigns?.length > 0 ? entry.updatedAt : null;
+
+    case 3: // Select Final Design
+      return entry.selectedFinalDesign ? entry.updatedAt : null;
+
+    case 4: // Approve Final Artwork
+      return entry.status === "Approved" ? entry.updatedAt : null;
+
+    default:
+      return null;
+  }
+};
+
 
   return (
     <div className="p-4">
@@ -390,6 +461,12 @@ const DesignStatusTab = ({
           {/* ---------- LEFT SIDE: FULL LOGIC (your existing flow) ---------- */}
           <div>
             {/* Status + Timestamp */}
+                <p className="font-medium mb-1">
+        Trademark: <span className="text-[#d1383a]">{entry.trademarkName}</span>
+      </p>
+      <p className="font-medium mb-1">
+        Molecule: <span className="text-[#d1383a]">{entry.moleculeName}</span>
+      </p>
             <p className="font-medium mb-1">Status: {entry.status}</p>
             <p className="text-sm text-gray-500">
               Submitted: {new Date(entry.createdAt).toLocaleString()}
@@ -643,14 +720,14 @@ const DesignStatusTab = ({
           </div>
 
           {/* ---------- RIGHT SIDE: TRACKER ---------- */}
-       <div className="relative border-l-4 border-gray-200 pl-8 mt-6">
+      <div className="relative border-l-4 border-gray-200 pl-8 mt-6">
   {stepLabels.map((label, index) => {
-    const timestamp = getStepTimestamp(entry, index);
+    const timestamp = getStepTimestamp(entry, index); // should map correctly
     const completed = Boolean(timestamp);
 
     return (
-      <div key={label} className="mb-10  relative">
-        {/* Step Circle with Number */}
+      <div key={label} className="mb-10 relative">
+        {/* Step Circle */}
         <div
           className={`absolute -left-6 top-1 flex items-center justify-center w-10 h-10 rounded-full text-white text-sm font-bold shadow-md ${
             completed ? "bg-[#d1383a]" : "bg-gray-400"
@@ -673,9 +750,7 @@ const DesignStatusTab = ({
               ✅ Completed on {new Date(timestamp).toLocaleString()}
             </p>
           ) : (
-            <p className="text-xs text-gray-400 mt-1">
-              ⏳ Pending
-            </p>
+            <p className="text-xs text-gray-400 mt-1">⏳ Pending</p>
           )}
         </div>
       </div>
@@ -688,6 +763,76 @@ const DesignStatusTab = ({
     </div>
   );
 };
+
+const TrademarkTab = ({
+  trademarks,
+  molecules,
+  selectedTrademark,
+  selectedMolecule,
+  setSelectedTrademark,
+  setSelectedMolecule,
+  setActiveTab,
+}) => (
+  <div>
+    <h2 className="text-xl font-bold mb-6 text-[#d1383a]">Select Trademark & Molecule</h2>
+
+    {/* Trademark Dropdown */}
+    <div className="mb-6">
+      <label className="block text-sm font-medium mb-1">Trademark</label>
+      <select
+        value={selectedTrademark || ""}
+        onChange={(e) => setSelectedTrademark(e.target.value)}
+        className="w-full border rounded px-3 py-2"
+      >
+        <option value="">-- Select Trademark --</option>
+        {trademarks.map((tm) => (
+          <option key={tm._id} value={tm.selectedName}>
+            {tm.selectedName}
+          </option>
+        ))}
+      </select>
+    </div>
+
+    {/* Molecule Dropdown */}
+{/* Molecule Dropdown */}
+<div className="mb-6">
+  <label className="block text-sm font-medium mb-1">Molecule</label>
+  <select
+    value={selectedMolecule || ""}
+    onChange={(e) => setSelectedMolecule(e.target.value)}
+    className="w-full border rounded px-3 py-2"
+  >
+    <option value="">-- Select Molecule --</option>
+    {molecules.map((mol) => {
+      const displayName = mol.moleculeName?.trim() || mol.customMolecule || "Unnamed";
+      return (
+        <option key={mol._id} value={displayName}>
+          {displayName}
+        </option>
+      );
+    })}
+  </select>
+</div>
+
+
+
+
+    <div className="text-right">
+      <button
+        className={`px-6 py-2 rounded text-white ${
+          selectedTrademark && selectedMolecule
+            ? "bg-[#d1383a] hover:bg-[#b8302d]"
+            : "bg-gray-400 cursor-not-allowed"
+        }`}
+        disabled={!selectedTrademark || !selectedMolecule}
+        onClick={() => setActiveTab("select")}
+      >
+        Continue →
+      </button>
+    </div>
+  </div>
+);
+
 
 const HistoryTab = ({ history, BASE_URL }) => {
   const [open, setOpen] = useState(false);
@@ -743,6 +888,12 @@ const HistoryTab = ({ history, BASE_URL }) => {
             >
               {/* Left side: status + thumbnails */}
               <div className="flex flex-col">
+                         <p className="font-medium mb-1">
+        Trademark: <span className="text-[#d1383a]">{entry.trademarkName}</span>
+      </p>
+      <p className="font-medium mb-1">
+        Molecule: <span className="text-[#d1383a]">{entry.moleculeName}</span>
+      </p>
                 <p className="font-medium">Status: {entry.status}</p>
                 <p className="text-sm text-gray-500">
                   Submitted: {new Date(entry.createdAt).toLocaleString()}
