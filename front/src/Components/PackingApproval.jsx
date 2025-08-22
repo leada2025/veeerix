@@ -672,6 +672,30 @@ const DesignStatusTab = ({
               </>
             )}
 
+            {entry.finalProductImages?.length > 0 && (
+  <div className="mt-4">
+    <p className="text-sm font-medium">📦 Final Product Images</p>
+    <div className="flex flex-wrap gap-4 mt-2">
+      {entry.finalProductImages.map((img, idx) => (
+        <div key={idx} className="flex flex-col items-center">
+          <img
+            src={`${BASE_URL}${img.url || img}`}
+            alt={`Final Product ${idx + 1}`}
+            className="w-32 h-32 object-cover rounded border"
+          />
+          <a
+            href={`${BASE_URL}${img.url || img}`}
+            download
+            className="text-xs mt-1 text-blue-600 underline"
+          >
+            Download
+          </a>
+        </div>
+      ))}
+    </div>
+  </div>
+)}
+
             {/* Approve / Reject Buttons */}
             {entry.status === "Sent for Customer Approval" &&
               entry.finalArtworkUrl && (

@@ -8,6 +8,7 @@ const AdminPackingPage = () => {
   const [finalArtwork, setFinalArtwork] = useState(null);
   const [editFiles, setEditFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
+   const [productImages, setProductImages] = useState([]);
 
   useEffect(() => {
     fetchPending();
@@ -57,6 +58,31 @@ const AdminPackingPage = () => {
       setSelectedSubmission(null);
     } catch (err) {
       console.error("Final artwork upload failed:", err);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+const handleUploadProductImages = async () => {
+    if (!productImages.length || !selectedSubmission?._id) return;
+
+    const formData = new FormData();
+    productImages.forEach((file) => {
+      formData.append("productImages", file);
+    });
+
+    try {
+      setUploading(true);
+      await axios.post(
+        `/packing/final-product-upload/${selectedSubmission._id}`,
+        formData
+      );
+      alert("Final product images uploaded.");
+      setProductImages([]);
+      fetchPending();
+      setSelectedSubmission(null);
+    } catch (err) {
+      console.error("Product image upload failed:", err);
     } finally {
       setUploading(false);
     }
@@ -230,6 +256,55 @@ const AdminPackingPage = () => {
                   </button>
                 </div>
               )}
+
+               {selectedSubmission.finalProductImages?.length > 0 && (
+  <div>
+    <p className="text-sm font-medium">📦 Final Product Images</p>
+    <div className="flex flex-wrap gap-4 mt-2">
+      {selectedSubmission.finalProductImages.map((img, idx) => {
+        const imageUrl = typeof img === "string" ? img : img.url;
+        return (
+          <div key={idx} className="flex flex-col items-center">
+            <img
+              src={`${BASE_URL}${imageUrl}`}
+              alt={`Product ${idx + 1}`}
+              className="w-24 h-24 object-cover rounded border"
+            />
+            <a
+              href={`${BASE_URL}${imageUrl}`}
+              className="text-xs mt-1 text-blue-600 underline"
+              download
+            >
+              Download
+            </a>
+          </div>
+        );
+      })}
+    </div>
+  </div>
+)}
+
+
+              {/* Upload new final product images */}
+              <div>
+                <label className="block font-medium mb-1">
+                  Upload Final Product Images
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={(e) => setProductImages(Array.from(e.target.files))}
+                />
+                <button
+                  className="mt-3 bg-green-600 text-white px-6 py-2 rounded"
+                  onClick={handleUploadProductImages}
+                  disabled={uploading}
+                >
+                  {uploading ? "Uploading..." : "Upload Product Images"}
+                </button>
+              </div>
+
 
               {/* 5. Rejection Info */}
              {selectedSubmission.status === "Final Artwork Pending" &&

@@ -448,16 +448,18 @@ router.post(
         url: `/uploads/${file.filename}`,
         uploadedAt: new Date(),
       }));
+const updated = await PackingDesign.findByIdAndUpdate(
+  designId,
+  {
+    $push: {
+      finalProductImages: { $each: savedFiles },
+      history: { step: "Final product images uploaded" },
+    },
+    lastAdminUpdate: new Date(),
+  },
+  { new: true }
+);
 
-      const updated = await PackingDesign.findByIdAndUpdate(
-        designId,
-        {
-          $push: { finalProductImages: { $each: savedFiles } },
-          $push: { history: { step: "Final product images uploaded" } },
-          lastAdminUpdate: new Date(),
-        },
-        { new: true }
-      );
 
       res.json({
         message: "Final product images uploaded successfully",

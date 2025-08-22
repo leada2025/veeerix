@@ -27,11 +27,15 @@ const packingDesignSchema = new mongoose.Schema(
         notes: String, // optional comment from admin
       },
     ],
-    finalImages: [String],
     approvedDesignUrl: String,
     finalArtworkUrl: String,
     finalArtworkType: { type: String, enum: ["image", "pdf"] },
-
+finalProductImages: [
+      {
+        url: String,
+        uploadedAt: { type: Date, default: Date.now },
+      },
+    ],
     rejectionReason: String,
     trackingStep: { type: Number, default: 0 },
     postPrintStep: { type: Number, default: null },
