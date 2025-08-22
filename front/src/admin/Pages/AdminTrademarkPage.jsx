@@ -5,7 +5,6 @@ import ApproveModal from "../Components/ApproveModal";
 import DocumentUploadModal from "../Components/DocumentUploadModal";
 import PaymentToggle from "../Components/PaymentToggle";
 
-
 const AdminTrademarkPage = () => {
   const [suggestions, setSuggestions] = useState([]);
   const [finalized, setFinalized] = useState([]);
@@ -63,19 +62,18 @@ const AdminTrademarkPage = () => {
     }
   };
 
-const handleDocumentUpload = async (id, file) => {
-  try {
-    const formData = new FormData();
-    formData.append("adminDoc", file); // <-- updated here
+  const handleDocumentUpload = async (id, file) => {
+    try {
+      const formData = new FormData();
+      formData.append("adminDoc", file); // ✅ keeping upload key consistent
 
-    await axios.post(`/api/trademark/${id}/upload-admin-doc`, formData);
-    fetchAllData();
-    setUploadDocFor(null);
-  } catch (err) {
-    console.error("Document upload failed", err);
-  }
-};
-
+      await axios.post(`/api/trademark/${id}/upload-admin-doc`, formData);
+      fetchAllData();
+      setUploadDocFor(null);
+    } catch (err) {
+      console.error("Document upload failed", err);
+    }
+  };
 
   const pending = suggestions.filter(
     (s) =>
@@ -88,7 +86,7 @@ const handleDocumentUpload = async (id, file) => {
 
   return (
     <div className="p-6 space-y-10 max-w-7xl mx-auto">
-      <h1 className="text-3xl font-bold text-[#d1383a] mb-10">
+      <h1 className="text-3xl font-bold text-[#7b4159] mb-10">
         Trademark Admin Panel
       </h1>
 
@@ -131,7 +129,7 @@ const handleDocumentUpload = async (id, file) => {
 
 const Section = ({ title, children }) => (
   <div>
-    <h2 className="text-xl font-semibold mb-4 text-[#d1383a]">{title}</h2>
+    <h2 className="text-xl font-semibold mb-4 text-[#7b4159]">{title}</h2>
     {children}
   </div>
 );

@@ -700,16 +700,7 @@ const DesignStatusTab = ({
               )}
 
             {/* Approved → Track */}
-            {entry.status === "Approved" && (
-              <div className="mt-3">
-                <button
-                  className="text-[#d1383a] underline text-sm"
-                  onClick={() => navigate("/packing/status")}
-                >
-                  Track Progress →
-                </button>
-              </div>
-            )}
+        
 
             {/* Rejection Reason */}
             {entry.status === "Pending" && entry.rejectionReason && (

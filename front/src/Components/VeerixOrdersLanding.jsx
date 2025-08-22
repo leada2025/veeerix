@@ -148,6 +148,15 @@ const handleCardClick = (index, onClick) => {
             >
               Admin
             </button>
+            <button
+              onClick={() => {
+                setShowDropdown(false);
+                navigate("/fbsadmin");
+              }}
+              className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+            >
+              FbsAdmin
+            </button>
           </div>
         )}
       </div>

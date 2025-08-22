@@ -3,7 +3,7 @@ import React from "react";
 import { Route } from "react-router-dom";
 import CustomerLayout from "../Components/AppLayout";
 import CreateBrandForm from "../Components/CreateBrandForm";
-import TrademarkDashboard from "../Components/TrademarkRequestForm";
+import TrademarkRequsetForm from "../Components/TrademarkRequestForm";
 import PlaceOrder from "../Components/PlaceOrder";
 import StatusPage from "../Components/StatusPage";
 import PackingApprovalPage from "../Components/PackingApproval";
@@ -16,6 +16,7 @@ import CustomerDirectTrademarkPage from "../Components/CustomerDirectTrademarkPa
 import StatusTracker from "../pages/AdminPackingMaterialTracking";
 import Dashboard from "../pages/Dashboard";
 import RequestDetails from "../Components/RequestDetails";
+import TrademarkDashboard from "../pages/FbsDashboard";
 
 
 
@@ -23,7 +24,7 @@ const CustomerRoutes = () => (
   <Route element={<CustomerLayout />}>
      <Route path="/dashboard" element={<Dashboard />} />
     <Route path="/create-brand" element={<CreateBrandForm />} />
-    <Route path="/trademark" element={<TrademarkDashboard />} />
+    <Route path="/trademark" element={<TrademarkRequsetForm />} />
     <Route path="/place-order" element={<PlaceOrder />} />
     <Route path="/status" element={<StatusPage />} />
     <Route path="/packing-approval" element={<PackingApprovalPage />} />
@@ -36,6 +37,7 @@ const CustomerRoutes = () => (
       <Route path="/admin/my-registered" element={<CustomerDirectTrademarkPage />} />
       <Route path="/packmattrack" element={<StatusTracker />} />
       <Route path="/requests/:id" element={<RequestDetails />} />
+      <Route path="/fbsdashboard" element={<TrademarkDashboard />} />
       
 
   </Route>

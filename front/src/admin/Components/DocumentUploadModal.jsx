@@ -8,7 +8,7 @@ const DocumentUploadModal = ({ suggestionId, onUpload, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+    <div className="fixed inset-0 bg-black/50 bg-opacity-40 flex items-center justify-center">
       <div className="bg-white p-6 rounded shadow-md w-[90%] max-w-md">
         <h2 className="text-lg font-semibold mb-4">Upload Document</h2>
         <input
@@ -23,7 +23,7 @@ const DocumentUploadModal = ({ suggestionId, onUpload, onClose }) => {
           </button>
           <button
             onClick={handleSubmit}
-            className="px-4 py-2 bg-[#d1383a] text-white rounded"
+            className="px-4 py-2 bg-[#7b4159] text-white rounded"
             disabled={!file}
           >
             Upload

@@ -26,6 +26,7 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
   const logoImg = isFishman ? fishmanLogo : veerixLogo;
 
   const navItems = [
+    { label: "Dashboard ", path: "/fbsdashboard", icon: <Gauge size={20} /> }, 
     { label: "Dashboard", path: "/dashboard", icon: <Gauge size={20} /> }, // New Dashboard link
     { label: "Request Quote", path: "/create-brand", icon: <Home size={20} /> },
     { label: "Trademark", path: "/trademark", icon: <FileText size={20} /> },
@@ -47,7 +48,8 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
         item.label === "Trademark" ||
         item.label === "Trademark Status" ||
         item.label === "Trademark History" ||
-        item.label === "Trademark Records"
+        item.label === "Trademark Records" ||
+        item.label === "Dashboard " 
       );
     } else {
       // For Veerix, hide Trademark-related pages
@@ -55,7 +57,9 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
         item.label !== "Trademark" &&
         item.label !== "Trademark Status" &&
         item.label !== "Trademark History" &&
-        item.label !== "Trademark Records"
+        item.label !== "Trademark Records"  &&
+        item.label !== "Dashboard " 
+
       );
     }
   });

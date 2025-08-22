@@ -12,17 +12,22 @@ const SuggestionsTable = ({
 }) => {
   const filteredData =
     !isApproved && !isFinalized
-      ? data.filter((item) => !item.approvedNames || item.approvedNames.length === 0)
+      ? data.filter(
+          (item) =>
+            !item.approvedNames || item.approvedNames.length === 0
+        )
       : data;
 
   return (
-    <div className="overflow-x-auto border border-gray-200 rounded-xl shadow bg-white">
+    <div className="overflow-x-auto border border-[#7b4159]/30 rounded-xl shadow bg-[#fdf8f9]">
       <table className="min-w-full text-sm text-left table-auto border-separate border-spacing-y-2">
-        <thead className="bg-[#fbeaea] text-[#d1383a] font-semibold text-sm uppercase">
+        <thead className="bg-[#7b4159] text-white font-semibold text-sm uppercase">
           <tr>
             <th className="p-3">Customer</th>
             <th className="p-3">Submitted Names</th>
-            {(isFinalized || isApproved) && <th className="p-3">Approved/Final</th>}
+            {(isFinalized || isApproved) && (
+              <th className="p-3">Approved/Final</th>
+            )}
             {isFinalized && (
               <>
                 <th className="p-3">Payment</th>
@@ -30,29 +35,50 @@ const SuggestionsTable = ({
                 <th className="p-3">Track Status</th>
               </>
             )}
-            {!isApproved && !isFinalized && <th className="p-3">Action</th>}
+            {!isApproved && !isFinalized && (
+              <th className="p-3">Action</th>
+            )}
           </tr>
         </thead>
         <tbody>
           {filteredData.map((item) => (
-            <tr key={item._id} className="border-t hover:bg-gray-50">
-              <td className="p-3">{item.customerId?.name || item.customerId?.email || "N/A"}</td>
+            <tr
+              key={item._id}
+              className="border-t border-[#7b4159]/20 hover:bg-[#7b4159]/5 transition"
+            >
+              {/* Customer */}
+              <td className="p-3 font-medium text-[#333]">
+                {item.customerId?.name ||
+                  item.customerId?.email ||
+                  "N/A"}
+              </td>
 
-              <td className="p-3">
-                <ul className="list-disc pl-5">
+              {/* Suggestions */}
+              <td className="p-3 text-[#444]">
+                <ul className="list-disc pl-5 space-y-1">
                   {item.suggestions
-                    .filter((sug) => !item.selectedName || sug.name !== item.selectedName)
+                    .filter(
+                      (sug) =>
+                        !item.selectedName ||
+                        sug.name !== item.selectedName
+                    )
                     .map((sug, i) => (
                       <li key={i}>
-                        {sug.name} <span className="text-xs text-gray-500">({sug.status})</span>
+                        {sug.name}{" "}
+                        <span className="text-xs text-gray-500">
+                          ({sug.status})
+                        </span>
                       </li>
                     ))}
                 </ul>
               </td>
 
+              {/* Approved / Final */}
               {(isFinalized || isApproved) && (
                 <td className="p-3 text-green-600 font-medium">
-                  {item.selectedName || item.approvedNames?.join(", ") || "N/A"}
+                  {item.selectedName ||
+                    item.approvedNames?.join(", ") ||
+                    "N/A"}
                 </td>
               )}
 
@@ -64,44 +90,44 @@ const SuggestionsTable = ({
                       <input
                         type="checkbox"
                         checked={item.paymentCompleted}
-                        onChange={(e) => onTogglePayment(item._id, e.target.checked)}
+                        onChange={(e) =>
+                          onTogglePayment(item._id, e.target.checked)
+                        }
                         className="sr-only peer"
                       />
-                      <div className="relative w-10 h-5 bg-gray-300 peer-checked:bg-green-500 rounded-full transition duration-300">
+                      <div className="relative w-10 h-5 bg-gray-300 peer-checked:bg-[#7b4159] rounded-full transition duration-300">
                         <div className="absolute left-0 top-0 w-5 h-5 bg-white border rounded-full shadow transform peer-checked:translate-x-full transition" />
                       </div>
                     </label>
                   </td>
 
                   {/* Documents */}
-                  <td className="p-3 space-y-1">
-                   {/* Admin Document */}
-{item.adminDocumentUrl && (
-  <div>
-    <a
-      href={`${BASE_URL}${item.adminDocumentUrl}`}
-      target="_blank"
-      rel="noreferrer"
-      className="text-blue-600 underline text-xs"
-    >
-      Admin Doc
-    </a>
-  </div>
-)}
+                  <td className="p-3 space-y-1 text-sm">
+                    {item.adminDocumentUrl && (
+                      <div>
+                        <a
+                          href={`${BASE_URL}${item.adminDocumentUrl}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-[#7b4159] underline"
+                        >
+                          Admin Doc
+                        </a>
+                      </div>
+                    )}
 
-{/* Customer Signed Document */}
-{item.customerSignedDocUrl && (
-  <div>
-    <a
-      href={`${BASE_URL}${item.customerSignedDocUrl}`}
-      target="_blank"
-      rel="noreferrer"
-      className="text-green-600 underline text-xs"
-    >
-      Signed Doc
-    </a>
-  </div>
-)}
+                    {item.customerSignedDocUrl && (
+                      <div>
+                        <a
+                          href={`${BASE_URL}${item.customerSignedDocUrl}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-green-600 underline"
+                        >
+                          Signed Doc
+                        </a>
+                      </div>
+                    )}
 
                     <button
                       className="text-xs text-[#d1383a] underline"
@@ -113,11 +139,15 @@ const SuggestionsTable = ({
 
                   {/* Tracking Status */}
                   <td className="p-3">
-                    <div>{item.trackingStatus || "Not started"}</div>
+                    <div className="text-sm text-gray-700">
+                      {item.trackingStatus || "Not started"}
+                    </div>
                     <select
-                      className="mt-2 w-full text-sm border border-gray-300 px-2 py-1 rounded focus:ring-2 focus:ring-[#d1383a]"
+                      className="mt-2 w-full text-sm border border-gray-300 px-2 py-1 rounded focus:ring-2 focus:ring-[#7b4159]"
                       value={item.trackingStatus || ""}
-                      onChange={(e) => onTrackStatusChange(item._id, e.target.value)}
+                      onChange={(e) =>
+                        onTrackStatusChange(item._id, e.target.value)
+                      }
                     >
                       <option value="">Update Status</option>
                       <option>New TM Application</option>
@@ -136,7 +166,7 @@ const SuggestionsTable = ({
                 <td className="p-3">
                   <button
                     onClick={() => onSelect(item)}
-                    className="bg-[#d1383a] hover:bg-[#b93032] text-white px-4 py-1 rounded-full text-sm"
+                    className="bg-[#7b4159] hover:bg-[#633447] text-white px-4 py-1 rounded-full text-sm transition"
                   >
                     Approve
                   </button>

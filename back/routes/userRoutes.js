@@ -77,6 +77,34 @@ router.post("/admin/login", async (req, res) => {
   }
 });
 
+// Fishman Admin Login
+router.post("/fbsadmin/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    const user = await User.findOne({ email });
+    if (!user || !(await user.matchPassword(password))) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    // 🔹 Only allow users with role "fbsadmin"
+    if (user.role !== "fbsadmin") {
+      return res.status(403).json({ message: "Access denied: Not a Fishman admin" });
+    }
+
+    res.status(200).json({
+      message: "Fishman admin login successful",
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+});
 
 // ✅ GET all customers (or users)
 router.get("/", async (req, res) => {

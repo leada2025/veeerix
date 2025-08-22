@@ -431,6 +431,44 @@ router.post("/approve", async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
+// routes/packing.js
+
+// POST /packing/final-product-upload/:designId
+router.post(
+  "/final-product-upload/:designId",
+  upload.array("productImages"), // multiple images
+  async (req, res) => {
+    try {
+      const { designId } = req.params;
+      if (!req.files || req.files.length === 0) {
+        return res.status(400).json({ message: "No product images uploaded" });
+      }
+
+      const savedFiles = req.files.map((file) => ({
+        url: `/uploads/${file.filename}`,
+        uploadedAt: new Date(),
+      }));
+
+      const updated = await PackingDesign.findByIdAndUpdate(
+        designId,
+        {
+          $push: { finalProductImages: { $each: savedFiles } },
+          $push: { history: { step: "Final product images uploaded" } },
+          lastAdminUpdate: new Date(),
+        },
+        { new: true }
+      );
+
+      res.json({
+        message: "Final product images uploaded successfully",
+        design: updated,
+      });
+    } catch (err) {
+      console.error("Final product upload error:", err);
+      res.status(500).json({ message: "Upload failed", error: err.message });
+    }
+  }
+);
 
 
 

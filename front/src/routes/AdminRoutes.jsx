@@ -12,15 +12,21 @@ import AdminAvailableDesignsPage from "../admin/Components/AdminAvailableDesigns
 import AdminTracklineUpdate from "../admin/Components/AdminPackingTrackline";
 import AdminMoleculePanel from "../admin/Components/AdminMoleculePanel";
 import AdminOrderPanel from "../admin/Pages/AdminOrderPanel";
+import FishmanLoginPage from "../admin/Pages/FbsLoginpage";
+import TrademarkDashboard from "../admin/Pages/DashboardFbs";
 
 const AdminRoutes = () => (
   <>
     {/* ✅ Show login at /admin */}
     <Route path="/admin" element={<VeerixLoginPage />} />
+    <Route path="/fbsadmin" element={<FishmanLoginPage />} />
 
     {/* ✅ All other admin pages go under /admin/* and use AdminLayout */}
     <Route path="/admin/dashboard" element={<AdminLayout />}>
       <Route index element={<AdminDashboard />} />
+    </Route>
+      <Route path="/admin/fbsdashboard" element={<AdminLayout />}>
+      <Route index element={<TrademarkDashboard />} />
     </Route>
 
     <Route path="/admin/customer" element={<AdminLayout />}>

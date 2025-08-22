@@ -27,6 +27,7 @@ const packingDesignSchema = new mongoose.Schema(
         notes: String, // optional comment from admin
       },
     ],
+    finalImages: [String],
     approvedDesignUrl: String,
     finalArtworkUrl: String,
     finalArtworkType: { type: String, enum: ["image", "pdf"] },

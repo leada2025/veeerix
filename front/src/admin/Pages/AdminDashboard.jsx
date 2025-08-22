@@ -1,7 +1,6 @@
 import React from "react";
 import {
   PackageCheck,
-  FileText,
   FlaskConical,
   ClipboardList,
 } from "lucide-react";
@@ -18,52 +17,60 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
+// ✅ Card Component
 const DashboardCard = ({ icon: Icon, title, count, color }) => (
-  <div className="bg-white shadow rounded-2xl p-6 flex items-center space-x-4">
-    <div className="p-3 rounded-full" style={{ backgroundColor: color }}>
-      <Icon className="text-white w-6 h-6" />
-    </div>
-    <div>
-      <h3 className="text-gray-600 text-sm font-semibold">{title}</h3>
-      <p className="text-xl font-bold">{count}</p>
+  <div className="bg-white shadow-md hover:shadow-2xl transition-transform transform hover:-translate-y-1 rounded-2xl overflow-hidden">
+    {/* Gradient top bar */}
+    <div
+      className="h-2"
+      style={{ background: `linear-gradient(90deg, ${color}, #111827)` }}
+    ></div>
+
+    <div className="p-6 flex items-center space-x-4">
+      <div
+        className="p-3 rounded-xl flex items-center justify-center shadow-inner"
+        style={{ backgroundColor: color }}
+      >
+        <Icon className="text-white w-7 h-7" />
+      </div>
+      <div>
+        <h3 className="text-gray-500 text-sm font-semibold">{title}</h3>
+        <p className="text-3xl font-extrabold text-gray-800">{count}</p>
+      </div>
     </div>
   </div>
 );
 
 const AdminDashboard = () => {
   const data = {
-    orders: 24,
-    trademarks: 12,
-    molecules: 8,
-    packingDesigns: 6,
+    orders: 42,
+    molecules: 18,
+    packingDesigns: 12,
   };
 
   const chartData = [
     { name: "Orders", value: data.orders },
-    { name: "Trademarks", value: data.trademarks },
     { name: "Molecules", value: data.molecules },
     { name: "Packing", value: data.packingDesigns },
   ];
 
-  const COLORS = ["#d1383a", "#f97316", "#3b82f6", "#10b981"];
+  const COLORS = ["#ef4444", "#3b82f6", "#10b981"];
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <h1 className="text-2xl font-bold mb-6 text-[#d1383a]">Admin Dashboard</h1>
+    <div className="min-h-screen bg-gradient-to-br from-gray-100 via-gray-200 to-gray-100 p-8">
+      {/* Header */}
+      <div className="mb-10">
+        
+        <p className="text-gray-500">Overview of activities & reports</p>
+      </div>
 
-      {/* Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
         <DashboardCard
           icon={ClipboardList}
           title="Orders"
           count={data.orders}
-          color="#d1383a"
-        />
-        <DashboardCard
-          icon={FileText}
-          title="Trademark Requests"
-          count={data.trademarks}
-          color="#f97316"
+          color="#ef4444"
         />
         <DashboardCard
           icon={FlaskConical}
@@ -82,22 +89,39 @@ const AdminDashboard = () => {
       {/* Charts */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
         {/* Bar Chart */}
-        <div className="bg-white p-6 shadow rounded-2xl">
-          <h2 className="text-lg font-semibold mb-4 text-[#d1383a]">Overview</h2>
-          <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={chartData}>
-              <XAxis dataKey="name" />
-              <YAxis allowDecimals={false} />
-              <Tooltip />
-              <Bar dataKey="value" fill="#d1383a" radius={[6, 6, 0, 0]} />
+        <div className="bg-white p-6 shadow-lg rounded-2xl">
+          <h2 className="text-lg font-bold mb-2 text-[#ef4444] flex items-center">
+            📈 Activity Overview
+          </h2>
+          <hr className="mb-4 border-gray-200" />
+          <ResponsiveContainer width="100%" height={280}>
+            <BarChart data={chartData} barSize={40}>
+              <XAxis dataKey="name" tick={{ fill: "#6b7280" }} />
+              <YAxis allowDecimals={false} tick={{ fill: "#6b7280" }} />
+              <Tooltip
+                contentStyle={{
+                  borderRadius: "12px",
+                  backgroundColor: "#f9fafb",
+                  border: "1px solid #e5e7eb",
+                }}
+              />
+              <Bar
+                dataKey="value"
+                radius={[8, 8, 0, 0]}
+                fill="#ef4444"
+                label={{ position: "top", fill: "#374151" }}
+              />
             </BarChart>
           </ResponsiveContainer>
         </div>
 
         {/* Pie Chart */}
-        <div className="bg-white p-6 shadow rounded-2xl">
-          <h2 className="text-lg font-semibold mb-4 text-[#d1383a]">Distribution</h2>
-          <ResponsiveContainer width="100%" height={250}>
+        <div className="bg-white p-6 shadow-lg rounded-2xl">
+          <h2 className="text-lg font-bold mb-2 text-[#ef4444] flex items-center">
+            🥧 Data Distribution
+          </h2>
+          <hr className="mb-4 border-gray-200" />
+          <ResponsiveContainer width="100%" height={280}>
             <PieChart>
               <Pie
                 data={chartData}
@@ -105,14 +129,25 @@ const AdminDashboard = () => {
                 nameKey="name"
                 cx="50%"
                 cy="50%"
-                outerRadius={80}
-                label
+                outerRadius={95}
+                label={({ name, percent }) =>
+                  `${name} ${(percent * 100).toFixed(0)}%`
+                }
               >
                 {chartData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={COLORS[index % COLORS.length]}
+                  />
                 ))}
               </Pie>
-              <Tooltip />
+              <Tooltip
+                contentStyle={{
+                  borderRadius: "12px",
+                  backgroundColor: "#f9fafb",
+                  border: "1px solid #e5e7eb",
+                }}
+              />
               <Legend />
             </PieChart>
           </ResponsiveContainer>

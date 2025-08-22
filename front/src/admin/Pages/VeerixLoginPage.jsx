@@ -2,30 +2,34 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "../api/Axios";
 import veerixLogo from "../../assets/v_logo.png";
+import { useSource } from "../../Context/SourceContext";
 
 const VeerixLoginPage = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+const { setSource } = useSource();
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    try {
-      const res = await axios.post("/api/users/admin/login", {
-        email,
-        password,
-      });
+const handleLogin = async (e) => {
+  e.preventDefault();
+  try {
+    const res = await axios.post("/api/users/admin/login", {
+      email,
+      password,
+    });
 
-      const { user } = res.data;
+    const { user } = res.data;
 
-      localStorage.setItem("user", JSON.stringify(user));
-      navigate("/admin/dashboard"); // or your preferred admin route
-    } catch (err) {
-      console.error(err);
-      setError("Invalid email or password");
-    }
-  };
+    localStorage.setItem("user", JSON.stringify(user));
+     setSource("veerix"); // ✅ tell context we are in Veerix
+
+    navigate("/admin/dashboard");
+  } catch (err) {
+    console.error(err);
+    setError("Invalid email or password");
+  }
+};
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 bg-[#f0f9ff]">

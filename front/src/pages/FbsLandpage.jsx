@@ -35,7 +35,7 @@ const LandingPage = () => {
       localStorage.setItem("selectedSource", "fishman");
 
       // Redirect
-      navigate("/trademark");
+      navigate("/fbsdashboard");
     } catch (err) {
       console.error(err);
       setError("Invalid email or password");

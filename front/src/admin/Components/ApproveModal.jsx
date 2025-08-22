@@ -32,8 +32,8 @@ const ApproveModal = ({ suggestion, onClose, onApprove }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 bg-opacity-40">
-      <div className="bg-white w-full max-w-md mx-auto rounded-2xl shadow-xl p-6 relative border border-[#d1383a]">
-        <h2 className="text-xl font-semibold mb-4 text-[#d1383a]">
+      <div className="bg-white w-full max-w-md mx-auto rounded-2xl shadow-xl p-6 relative border border-[#7b4159]">
+        <h2 className="text-xl font-semibold mb-4 text-[#7b4159]">
           Approve Trademark Suggestions
         </h2>
 
@@ -80,7 +80,7 @@ const ApproveModal = ({ suggestion, onClose, onApprove }) => {
             className={`px-4 py-2 ${
               isAlreadyApproved
                 ? "bg-gray-300 cursor-not-allowed"
-                : "bg-[#d1383a] hover:bg-[#b93032]"
+                : "bg-[#7b4159] hover:bg-[#653549]"
             } text-white rounded font-medium text-sm`}
           >
             {isAlreadyApproved ? "Already Approved" : "Approve Selected"}

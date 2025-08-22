@@ -1,19 +1,23 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { FiSettings, FiLogOut } from "react-icons/fi";
-import { useNavigate } from "react-router-dom";
+import { useSource } from "../../Context/SourceContext"; // ✅ use source context
 
 export default function AdminNavbar() {
   const [settingsDropdownOpen, setSettingsDropdownOpen] = useState(false);
   const [role, setRole] = useState(null);
   const settingsRef = useRef(null);
   const location = useLocation();
- const navigate = useNavigate();
+  const navigate = useNavigate();
+  const { source } = useSource(); // ✅ get source (veerix / fishman)
+
+  // role from localStorage
   useEffect(() => {
     const storedRole = localStorage.getItem("role");
     setRole(storedRole?.toLowerCase() || null);
   }, []);
 
+  // close dropdown on outside click
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (settingsRef.current && !settingsRef.current.contains(event.target)) {
@@ -24,46 +28,64 @@ export default function AdminNavbar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const getCurrentPageTitle = () => {
-    const pathname = location.pathname.toLowerCase();
-    const pageMap = [
-      { path: "customer", label: "Customers" },
-      { path: "orders", label: "Orders" },
-      { path: "products", label: "Products" },
-      { path: "request-pricing", label: "Request Pricing" },
-      { path: "requests", label: "Requests" },
-      { path: "priceconsole", label: "Price Approval" },
-      { path: "priceapproval", label: "Price Approval" },
-      { path: "pricing/roles", label: "Role Pricing" },
-      { path: "pricing/history", label: "Pricing History" },
-      { path: "users", label: "User Access" },
-    ];
+  // dynamic title mapping
+const getCurrentPageTitle = () => {
+  const pathname = location.pathname.toLowerCase();
+  const pageMap = [
+    { path: "/admin/packingtrack", label: "Packing Status" },
+    { path: "/admin/designs", label: "Packing Designs" },
+    { path: "/admin/packing", label: "Packing Approval" },
+    { path: "/admin/customer", label: "Customers" },
+    { path: "/admin/orders", label: "Order Management" },
+    { path: "/admin/molecule", label: "Brand Requests" },
+    { path: "/admin/trademark", label: "Trademark" },
+    { path: "/admin/history", label: "Trademark History" },
+    { path: "/admin/addmolecule", label: "Add Molecule" },
+    { path: "/admin/pricing/history", label: "Pricing History" },
+    { path: "/admin/users", label: "User Access" },
+  ];
 
-    for (const page of pageMap) {
-      if (pathname.includes(page.path)) return page.label;
-    }
+  for (const page of pageMap) {
+    if (pathname.startsWith(page.path)) return page.label;
+  }
+  return "Dashboard";
+};
 
-    return "Dashboard";
-  };
+
+  // logout per source
   const handleLogout = () => {
-    localStorage.removeItem("token"); // or clear context
-    navigate("/"); // Go to VeerixOrdersLanding
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    localStorage.removeItem("source");
+
+    // ✅ Redirect to correct landing
+    if (source === "fishman") {
+      navigate("/");
+    } else {
+      navigate("/"); // veerix landing
+    }
   };
+
   return (
-    <header className="h-[80px] bg-[#d1383a] border-b border-[#1C2E4A] flex items-center justify-between px-6 sticky top-0 z-10 shadow-sm">
+    <header
+      className={`h-[80px] border-b flex items-center justify-between px-6 sticky top-0 z-10 shadow-sm
+        ${source === "fishman" ? "bg-[#7b4159] border-[#7b4159]" : "bg-[#d1383a] border-[#1C2E4A]"}
+      `}
+    >
       {/* Page Title */}
-      <h1 className="text-xl font-semibold text-white">
-        {getCurrentPageTitle()}
-      </h1>
+      <h1 className="text-xl font-semibold text-white">{getCurrentPageTitle()}</h1>
 
       {/* Right Controls */}
-      <div className="flex items-center gap-6 relative text-white" ref={settingsRef}>
+      <div
+        className="flex items-center gap-6 relative text-white"
+        ref={settingsRef}
+      >
         {/* Admin Settings Dropdown */}
         {role === "admin" && (
           <>
             <button
               onClick={() => setSettingsDropdownOpen(!settingsDropdownOpen)}
-              className="hover:text-[#00E0C6] transition"
+              className="hover:text-yellow-300 transition"
               title="Settings"
             >
               <FiSettings className="w-5 h-5" />
@@ -78,7 +100,7 @@ export default function AdminNavbar() {
                         navigate("/admin/users");
                         setSettingsDropdownOpen(false);
                       }}
-                      className="w-full text-left px-4 py-2 hover:bg-[#00E0C610]"
+                      className="w-full text-left px-4 py-2 hover:bg-gray-100"
                     >
                       User Access
                     </button>
@@ -89,7 +111,7 @@ export default function AdminNavbar() {
                         navigate("/admin/pricing/roles");
                         setSettingsDropdownOpen(false);
                       }}
-                      className="w-full text-left px-4 py-2 hover:bg-[#00E0C610]"
+                      className="w-full text-left px-4 py-2 hover:bg-gray-100"
                     >
                       Branding Settings
                     </button>
@@ -100,7 +122,7 @@ export default function AdminNavbar() {
                         navigate("/admin/pricing/history");
                         setSettingsDropdownOpen(false);
                       }}
-                      className="w-full text-left px-4 py-2 hover:bg-[#00E0C610]"
+                      className="w-full text-left px-4 py-2 hover:bg-gray-100"
                     >
                       Terms & Policies
                     </button>
@@ -114,7 +136,7 @@ export default function AdminNavbar() {
         {/* Logout Button */}
         <button
           onClick={handleLogout}
-          className="flex items-center gap-1 text-sm hover:text-red-500 transition"
+          className="flex items-center gap-1 text-sm hover:text-red-400 transition"
           title="Logout"
         >
           <FiLogOut className="w-5 h-5" />
