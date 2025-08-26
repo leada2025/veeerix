@@ -15,7 +15,17 @@ const BrandRequestSchema = new mongoose.Schema({
   customerComment: { type: String, default: "" }, // 💬 Comment from customer
   customAmount: { type: Number, default: 0 },     // 💰 Negotiated by customer
 
-  adminComment: { type: String, default: "" },    // ✅ Admin's reply or negotiation
+messages: {
+  type: [
+    {
+      sender: { type: String, enum: ["customer", "admin"], required: true },
+      text: { type: String, required: true },
+      timestamp: { type: Date, default: Date.now },
+    }
+  ],
+  default: []
+}
+, 
   quotedAmount: { type: Number, default: 0 },    // ✅ Admin's final quoted amount
 
   customerId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },

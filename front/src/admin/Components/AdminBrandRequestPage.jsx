@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "../api/Axios";
-
+import { MessageCircle } from "lucide-react";
 const AdminBrandRequestPage = () => {
   const [requests, setRequests] = useState([]);
   const [adminInputs, setAdminInputs] = useState({});
@@ -102,7 +102,7 @@ const AdminBrandRequestPage = () => {
               <th className="px-4 py-3">Custom</th>
               <th className="px-4 py-3">Customer</th>
               <th className="px-4 py-3">Amount</th>
-              <th className="px-4 py-3">Customer Comment</th>
+              <th className="px-4 py-3">Open Chat</th>
               <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3">Payment</th>
               <th className="px-4 py-3">Actions</th>
@@ -165,57 +165,41 @@ const AdminBrandRequestPage = () => {
                     </div>
                   </td>
 
-                  {/* Customer Comment + Inline decision (when Pending & has comment) */}
-                  <td className="px-4 py-3 align-top">
-                    {req.customerComment ? (
-                      <div className="flex flex-col gap-2">
-                        <div className="border rounded-lg p-2 bg-gray-50">
-                          <p className="text-gray-700 text-xs line-clamp-2">
-                            {req.customerComment}
-                          </p>
-                          <div className="mt-1">
-                            <button
-                              onClick={() => setPopupOpenId(req._id)}
-                              className="text-[#d1383a] text-xs underline hover:text-[#b52e31]"
-                            >
-                              Read full comment
-                            </button>
-                          </div>
-                        </div>
+              
 
-                        {req.status === "Pending" && (
-                          <div className="inline-flex items-center gap-2">
-                            <span className="text-xs text-gray-600">
-                              Quick decision:
-                            </span>
-                            <div className="flex rounded-full border border-gray-300 overflow-hidden">
-                              <button
-                                onClick={() =>
-                                  handleQuickDecision(req, "approve")
-                                }
-                                className="px-3 py-1 text-xs font-medium bg-green-50 hover:bg-green-100 text-green-700"
-                              >
-                                Approve
-                              </button>
-                              <div className="w-px bg-gray-300" />
-                              <button
-                                onClick={() =>
-                                  handleQuickDecision(req, "reject")
-                                }
-                                className="px-3 py-1 text-xs font-medium bg-red-50 hover:bg-red-100 text-red-700"
-                              >
-                                Reject
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <span className="inline-flex items-center px-2 py-1 rounded-full text-[11px] font-medium bg-gray-100 text-gray-500">
-                        No comment
-                      </span>
-                    )}
-                  </td>
+<td className="px-4 py-3 align-top">
+  {req.customerComment || (req.messages && req.messages.length > 0) ? (
+    <div className="flex items-center gap-2">
+      {/* Chat Icon */}
+      <button
+        onClick={() => setPopupOpenId(req._id)}
+        className="relative flex items-center justify-center w-9 h-9 rounded-full 
+                   bg-blue-50 hover:bg-blue-100 shadow-sm transition-colors"
+        title="Open Chat"
+      >
+        <MessageCircle className="w-5 h-5 text-blue-600" />
+
+        {/* 🔴 Red dot if last message is from customer */}
+        {req.messages?.length > 0 &&
+          req.messages[req.messages.length - 1].sender === "customer" && (
+            <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full"></span>
+          )}
+      </button>
+
+      {/* If plain customer comment exists (no chat started yet) */}
+      {req.messages?.length === 0 && req.customerComment && (
+        <span className="text-xs text-gray-600 truncate max-w-[120px] italic">
+          {req.customerComment}
+        </span>
+      )}
+    </div>
+  ) : (
+    <span className="inline-flex items-center px-2 py-1 rounded-full text-[11px] font-medium bg-gray-100 text-gray-500">
+      No comment
+    </span>
+  )}
+</td>
+
 
                   {/* Status */}
                   <td className="px-4 py-3 font-medium">{req.status}</td>
@@ -331,34 +315,86 @@ const AdminBrandRequestPage = () => {
       </div>
 
       {/* Centered modal for full comment */}
-      {popupOpenId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-5">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-base font-semibold text-[#d1383a]">
-                Customer Comment
-              </h3>
-              <button
-                onClick={() => setPopupOpenId(null)}
-                className="text-gray-500 hover:text-gray-800 text-sm"
-              >
-                ✖
-              </button>
-            </div>
-            <div className="text-gray-800 text-sm max-h-72 overflow-auto whitespace-pre-line">
-              {requests.find((r) => r._id === popupOpenId)?.customerComment}
-            </div>
-            <div className="mt-4 flex justify-end">
-              <button
-                onClick={() => setPopupOpenId(null)}
-                className="px-4 py-2 rounded-lg text-sm bg-gray-100 hover:bg-gray-200"
-              >
-                Close
-              </button>
+      {/* 🆕 Chat Modal */}
+{popupOpenId && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+    <div className="w-full max-w-md bg-white rounded-2xl shadow-xl flex flex-col h-[80vh]">
+      
+      {/* Header */}
+      <div className="flex items-center justify-between p-4 border-b">
+        <h3 className="text-base font-semibold text-[#d1383a]">Conversation</h3>
+        <button
+          onClick={() => setPopupOpenId(null)}
+          className="text-gray-500 hover:text-gray-800 text-sm"
+        >
+          ✖
+        </button>
+      </div>
+
+      {/* Messages */}
+      <div className="flex-1 p-4 overflow-y-auto space-y-2">
+        {requests.find((r) => r._id === popupOpenId)?.messages?.map((msg, i) => (
+          <div
+            key={i}
+            className={`p-2 rounded-lg max-w-[70%] ${
+              msg.sender === "admin"
+                ? "bg-red-100 self-end ml-auto"
+                : "bg-gray-100"
+            }`}
+          >
+            <div className="text-sm">{msg.text}</div>
+            <div className="text-xs text-gray-500">
+              {new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
             </div>
           </div>
-        </div>
-      )}
+        ))}
+      </div>
+
+      {/* Input */}
+      <div className="p-3 border-t flex gap-2">
+        <input
+          type="text"
+          placeholder="Type a message..."
+          value={adminInputs[popupOpenId]?.message || ""}
+          onChange={(e) =>
+            setAdminInputs((prev) => ({
+              ...prev,
+              [popupOpenId]: {
+                ...(prev[popupOpenId] || {}),
+                message: e.target.value,
+              },
+            }))
+          }
+          className="flex-1 border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-[#d1383a]"
+        />
+        <button
+          className="px-3 py-1 bg-[#d1383a] text-white rounded hover:bg-[#b42f31] transition-colors"
+          onClick={async () => {
+            const text = adminInputs[popupOpenId]?.message?.trim();
+            if (!text) return;
+            try {
+              await axios.patch(`/api/brand-request/${popupOpenId}/message`, {
+                sender: "admin",
+                text,
+              });
+              setAdminInputs((prev) => ({
+                ...prev,
+                [popupOpenId]: { ...prev[popupOpenId], message: "" },
+              }));
+              await fetchRequests(); // reload data
+            } catch (err) {
+              console.error("Send message failed", err);
+            }
+          }}
+        >
+          Send
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+
     </div>
   );
 };

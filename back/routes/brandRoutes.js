@@ -12,7 +12,8 @@ router.post("/brand-request", async (req, res) => {
   moleculeName,
   customMolecule,
   customerId,
-  customerComment, // ✅ use directly from req.body
+  customerComment,
+    messages: []  // ✅ use directly from req.body
 });
 
 
@@ -25,18 +26,19 @@ router.post("/brand-request", async (req, res) => {
 });
 
 // Get all brand requests for admin (populate customer info)
+// Get all brand requests for admin (populate customer info)
 router.get("/admin/brand-requests", async (req, res) => {
   try {
     const allRequests = await BrandRequest.find()
       .populate("customerId", "name email");
 
-    // 🔍 Fetch molecule amounts by matching moleculeName string
     const requestsWithAmount = await Promise.all(
-      allRequests.map(async (req) => {
-        const mol = await Molecule.findOne({ name: req.moleculeName });
+      allRequests.map(async (reqDoc) => {
+        const mol = await Molecule.findOne({ name: reqDoc.moleculeName });
+
         return {
-          ...req.toObject(),
-          amount: mol?.amount || 0,
+          ...reqDoc.toObject(),
+          amount: mol?.amount ?? reqDoc.quotedAmount ?? 0,  // ✅ fallback
         };
       })
     );
@@ -66,6 +68,34 @@ router.get("/brand-request/:customerId", async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
+// PATCH: add message (customer or admin)
+router.patch("/brand-request/:id/message", async (req, res) => {
+  const { id } = req.params;
+  const { sender, text } = req.body;
+
+  if (!sender || !text) {
+    return res.status(400).json({ message: "Sender and text are required" });
+  }
+
+  try {
+    const updated = await BrandRequest.findByIdAndUpdate(
+      id,
+      { $push: { messages: { sender, text, timestamp: new Date() } } },
+      { new: true, select: "messages" }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ message: "Request not found" });
+    }
+
+    res.json(updated);
+ // ✅ frontend always gets this
+  } catch (error) {
+    console.error("Error saving message:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 
 
 // Update request status or payment

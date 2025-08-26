@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Select from "react-select";
 import api from "../api/Axios";
-import { FiInfo, FiCheckCircle } from "react-icons/fi";
+import { FiInfo, FiCheckCircle,FiLoader,FiCreditCard,FiMessageSquare  } from "react-icons/fi";
 
 
 
@@ -27,6 +27,10 @@ const prevHistoryCountRef = React.useRef(0);
 const [hasNewStatus, setHasNewStatus] = useState(false);
 const [hasNewHistory, setHasNewHistory] = useState(false);
 
+const [editingRowId, setEditingRowId] = useState(null);
+
+
+
   const getCustomerId = () => {
     try {
       const user = JSON.parse(localStorage.getItem("user"));
@@ -35,6 +39,14 @@ const [hasNewHistory, setHasNewHistory] = useState(false);
       return null;
     }
   };
+
+const [seenChats, setSeenChats] = useState(() => {
+  const customerId = getCustomerId();
+  if (!customerId) return {};
+  const saved = localStorage.getItem(`seenChats_${customerId}`);
+  return saved ? JSON.parse(saved) : {};
+});
+
 
 const fetchMoleculeOptions = async () => {
   try {
@@ -57,14 +69,16 @@ useEffect(() => {
   };
   init();
 }, []);
+
+
+
+
 useEffect(() => {
-  fetchMoleculeOptions();
+  const customerId = getCustomerId();
+  if (!customerId) return;
+  const saved = localStorage.getItem(`seenChats_${customerId}`);
+  if (saved) setSeenChats(JSON.parse(saved));
 }, []);
-useEffect(() => {
-  if (moleculeOptions.length > 0) {
-    fetchPreviousRequests();
-  }
-}, [moleculeOptions]);
 
 
 
@@ -94,12 +108,13 @@ const fetchPreviousRequests = async () => {
       comment: item.customerComment || "",
       adminComment: item.adminComment || "",
       quotedAmount: item.quotedAmount || 0,
-      status: item.status === "Pending" ? "Pending" : "Approved Awaiting",
+      status: item.status || "Pending",
       payment: item.paymentDone
         ? "Paid"
         : item.status === "Requested Payment"
         ? "Awaiting"
         : "Not Paid",
+      messages: item.messages || [],
     }));
 
     const emptyRow = {
@@ -113,27 +128,42 @@ const fetchPreviousRequests = async () => {
     const finalRows = fetched.length > 0 ? [emptyRow, ...fetched] : [emptyRow];
     setRows(finalRows);
 
-    // ✅ Count current
+    // ✅ Count logic for status/history
     const currentStatusCount = finalRows.filter(r => r._id && r.payment !== "Paid").length;
     const currentHistoryCount = finalRows.filter(r => r.payment === "Paid").length;
 
-    // ✅ Compare with stored values
-// ✅ New condition: If count increased OR "Approved Awaiting" exists
-const hasApprovedAwaiting = finalRows.some(r => r.status === "Approved Awaiting" && r.payment !== "Paid");
+    const hasApprovedAwaiting = finalRows.some(r => r.status === "Approved Awaiting" && r.payment !== "Paid");
 
-if ((currentStatusCount > prevStatusCountRef.current || hasApprovedAwaiting) && activeTab !== "status") {
-  setHasNewStatus(true);
-}
+    if ((currentStatusCount > prevStatusCountRef.current || hasApprovedAwaiting) && activeTab !== "status") {
+      setHasNewStatus(true);
+    }
 
     if (currentHistoryCount > prevHistoryCountRef.current && activeTab !== "history") {
       setHasNewHistory(true);
     }
 
-    // ✅ Save new counts to localStorage
     prevStatusCountRef.current = currentStatusCount;
     prevHistoryCountRef.current = currentHistoryCount;
     localStorage.setItem("prevStatusCount", currentStatusCount);
     localStorage.setItem("prevHistoryCount", currentHistoryCount);
+
+    // 🔴 NEW: check for unseen admin messages
+    finalRows.forEach((row) => {
+      if (!row._id || !row.messages?.length) return;
+      const lastMsg = row.messages[row.messages.length - 1];
+      if (lastMsg.sender.toLowerCase() === "admin") {
+        const lastTs = new Date(lastMsg.timestamp).getTime();
+        const seenTs = seenChats[row._id] || 0;
+        if (lastTs > seenTs) {
+          // 👇 Show red dot on correct tab
+          if (row.payment === "Paid") {
+            if (activeTab !== "history") setHasNewHistory(true);
+          } else {
+            if (activeTab !== "status") setHasNewStatus(true);
+          }
+        }
+      }
+    });
 
     return finalRows;
   } catch (err) {
@@ -245,6 +275,21 @@ const handleSaveComment = async (index) => {
 };
 
 // Inside your render function, replace the current filtering logic with:
+const markChatSeen = (row) => {
+  const lastMsg = row.messages?.[row.messages.length - 1];
+  if (lastMsg && lastMsg.sender.toLowerCase() === "admin") {
+    const ts = new Date(lastMsg.timestamp).getTime();
+
+    setSeenChats((prev) => {
+      const updated = { ...prev, [row._id]: ts };
+      localStorage.setItem(`seenChats_${getCustomerId()}`, JSON.stringify(updated));
+ // ✅ always in sync
+      return updated;
+    });
+  }
+};
+
+
 
 
 const handleStatusClick = (row) => {
@@ -308,9 +353,9 @@ const handleTabClick = (tabId) => {
               <th className="p-3">Molecule Category</th>
               <th className="p-3"></th>
               <th className="p-3">Rate (₹)</th>
-              <th className="p-3">Comment</th>
+              <th className="p-3">Open Chat</th>
               <th className="p-3">Status</th>
-              <th className="p-3">Payment</th>
+             
               <th className="p-3">Action</th>
             </tr>
           </thead>
@@ -354,44 +399,59 @@ const handleTabClick = (tabId) => {
                 </td>
 
                 {/* Rate */}
-                <td className="p-3">
-                  {row.selected?.amount
-                    ? row.quotedAmount
-                      ? `₹${row.quotedAmount}`
-                      : `₹${row.selected.amount}`
-                    : "-"}
-                </td>
+              <td className="p-3">
+  {row.quotedAmount
+    ? `₹${row.quotedAmount}`
+    : row.selected?.amount
+    ? `₹${row.selected.amount}`
+    : "-"}
+</td>
+
 
                 {/* Comment */}
-                <td className="p-3 space-y-1">
-                  <div>
-                    <textarea
-                      rows={2}
-                      value={row.comment}
-                      readOnly
-                      placeholder="Click to enter comment"
-                      className={`w-full border rounded px-2 py-1 text-sm pr-6 bg-gray-50 cursor-pointer hover:ring-1 hover:ring-[#d1383a]`}
-                      onClick={() => {
-                        setEditingRowIndex(index);
-                        setModalComment(row.comment || "");
-                      }}
-                    />
-                  </div>
-                  {row.adminComment && (
-                    <div className="text-sm text-gray-700 border rounded px-2 py-1 bg-yellow-50">
-                      <strong>Admin:</strong> {row.adminComment}
-                    </div>
-                  )}
-                </td>
+         {/* Comment / Chat Trigger */}
+<td className="p-3">
+  {row._id ? (
+    <button
+      onClick={() => {
+        setEditingRowId(row._id);
+        setModalComment("");
+        markChatSeen(row); // ✅ mark with timestamp
+      }}
+      className="relative flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200"
+    >
+      <FiMessageSquare className="w-5 h-5 text-[#d1383a]" />
+
+      {/* 🔴 Show dot only if there's a newer admin msg */}
+  {(() => {
+  const lastMsg = row.messages?.[row.messages.length - 1];
+  if (!lastMsg || lastMsg.sender.toLowerCase() !== "admin") return null;
+
+  const lastTs = new Date(lastMsg.timestamp).getTime();
+  const seenTs = seenChats[row._id] || 0;
+
+  return lastTs > seenTs ? (
+    <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full animate-ping"></span>
+  ) : null;
+})()}
+
+
+    </button>
+  ) : (
+    <span className="text-gray-400 text-xs">No Chat</span>
+  )}
+</td>
+
+
 
 <td
-  className={`p-3 flex items-center gap-2 ${
+  className={`p-3 flex items-center gap-2 cursor-pointer ${
     row.payment === "Paid"
       ? "text-green-600"
       : row.status === "Pending"
       ? "text-yellow-600"
-      : row.status === "Approved Awaiting"
-      ? "text-green-600"
+      : row.status === "Approved Awaiting" || row.status === "Requested Payment"
+      ? "text-blue-600"
       : ""
   }`}
   onClick={() => {
@@ -400,32 +460,40 @@ const handleTabClick = (tabId) => {
     if (row.status === "Pending" && row._id) {
       setWaitingRowIndex(index);
       setShowWaitingPopup(true);
-    } else if (row.status === "Approved Awaiting" && row._id) {
+    } else if (
+      (row.status === "Requested Payment" || row.status === "Approved Awaiting") &&
+      row._id
+    ) {
       setPaymentRowId(row._id);
       setShowPaymentPopup(true);
     }
   }}
 >
+  {/* Icon */}
   {row.payment === "Paid" ? (
     <FiCheckCircle className="h-5 w-5 text-green-600" />
-  ) : row.status === "Pending" && row._id ? (
-    <FiInfo className="h-5 w-5 text-yellow-600 animate-spin" />
-  ) : row.status === "Approved Awaiting" && row._id ? (
-    <FiInfo className="h-5 w-5 text-green-600 animate-spin" />
+  ) : row.status === "Pending" ? (
+    <FiLoader className="h-5 w-5 text-yellow-600 animate-spin" />
+  ) : row.status === "Approved Awaiting" || row.status === "Requested Payment" ? (
+    <FiCreditCard className="h-5 w-5 text-blue-600" />
   ) : null}
 
-  <span>{row.payment === "Paid" ? "Paid" : row.status}</span>
+  {/* Label */}
+  <span>
+    {row.payment === "Paid" ? "Paid" : row.status}
+  </span>
 </td>
 
 
 
 
 
+
                 {/* Payment */}
-                <td className="p-3">{row.payment}</td>
+               
 
                 {/* Actions */}
-                <td className="p-3 flex gap-2">
+                <td className="p-3  gap-2">
                   {row.status === "Pending" && activeTab === "request" ? (
                     <button
                       onClick={() => handleRequestQuote(index)}
@@ -442,7 +510,7 @@ const handleTabClick = (tabId) => {
                     </button>
                   ) : (
                     <span className="text-gray-500">
-                      {row.status || "-"}
+                      {/* {row.status || "-"} */}
                     </span>
                   )}
 
@@ -463,53 +531,7 @@ const handleTabClick = (tabId) => {
       );
     })()}
 
-    {/* Comment Modal */}
-    {editingRowIndex !== null && (
-      <div className="fixed inset-0 z-50 bg-black/50 bg-opacity-50 flex items-center justify-center">
-        <div className="bg-white p-6 rounded-xl shadow-xl w-[90%] max-w-xl">
-          <h2 className="text-lg font-semibold mb-2">
-            {rows[editingRowIndex]?._id ? "Edit Comment" : "Add Comment"}
-          </h2>
-          <textarea
-            className="w-full h-40 border rounded p-2"
-            value={modalComment}
-            onChange={(e) => setModalComment(e.target.value)}
-            autoFocus
-          />
-          <div className="flex justify-end mt-4 gap-2">
-            <button
-              className="px-4 py-1 rounded bg-gray-200"
-              onClick={() => setEditingRowIndex(null)}
-            >
-              Cancel
-            </button>
-            <button
-              className="px-4 py-1 rounded bg-[#d1383a] text-white"
-              onClick={async () => {
-                const updated = [...rows];
-                updated[editingRowIndex].comment = modalComment;
-                setRows(updated);
-                const rowToUpdate = updated[editingRowIndex];
-                if (rowToUpdate._id) {
-                  try {
-                    await api.patch(
-                      `/api/brand-request/${rowToUpdate._id}/comment`,
-                      { customerComment: modalComment }
-                    );
-                  } catch (err) {
-                    console.error("Update failed:", err);
-                    alert("Error updating comment.");
-                  }
-                }
-                setEditingRowIndex(null);
-              }}
-            >
-              Save
-            </button>
-          </div>
-        </div>
-      </div>
-    )}
+ 
   {showWaitingPopup && (
   <div
     className="fixed inset-0 bg-black/50 bg-opacity-50 flex items-center justify-center z-50"
@@ -575,6 +597,87 @@ const handleTabClick = (tabId) => {
     </div>
   </div>
 )}
+
+{editingRowId && (
+  <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
+    <div className="bg-white w-[400px] max-h-[80vh] rounded-xl shadow-xl flex flex-col">
+      
+      {/* Header */}
+      <div className="p-3 border-b flex justify-between items-center">
+        <h2 className="font-semibold">Chat</h2>
+        <button onClick={() => setEditingRowId(null)}>✕</button>
+      </div>
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-3 space-y-2">
+        {rows.find(r => r._id === editingRowId)?.messages?.map((msg, i) => (
+          <div
+            key={i}
+            className={`p-2 rounded-lg max-w-[70%] ${
+              msg.sender === "customer"
+                ? "bg-blue-100 self-end ml-auto"
+                : "bg-gray-200"
+            }`}
+          >
+            <div className="text-xs font-semibold text-gray-600">
+              {msg.sender === "customer" ? "You" : "Admin"}
+            </div>
+            <div className="text-sm">{msg.text}</div>
+            <div className="text-xs text-gray-500">
+              {new Date(msg.timestamp).toLocaleTimeString()}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Input */}
+      <div className="p-3 border-t flex gap-2">
+        <input
+          type="text"
+          value={modalComment}
+          onChange={(e) => setModalComment(e.target.value)}
+          placeholder="Type a message..."
+          className="flex-1 border rounded px-2 py-1"
+        />
+        <button
+          className="px-3 py-1 bg-[#d1383a] text-white rounded"
+          onClick={async () => {
+            const rowToUpdate = rows.find(r => r._id === editingRowId);
+            if (!rowToUpdate?._id || !modalComment.trim()) return;
+
+            try {
+              const res = await api.patch(
+                `/api/brand-request/${rowToUpdate._id}/message`,
+                {
+                  sender: "customer",
+                  text: modalComment.trim(),
+                }
+              );
+
+              const updatedDoc = res.data;
+              const updatedMessages = updatedDoc.messages || [];
+
+              setRows(prev =>
+                prev.map(r =>
+                  r._id === rowToUpdate._id
+                    ? { ...r, messages: updatedMessages }
+                    : r
+                )
+              );
+
+              setModalComment("");
+            } catch (err) {
+              console.error("Send message failed", err);
+            }
+          }}
+        >
+          Send
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
 
 
   </div>
