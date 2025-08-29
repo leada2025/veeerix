@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 import { BASE_URL } from "../api/config";
 import UnifiedPackingStatus from "./PackingStatusPage";
 
-import { PenTool, FileCheck, Check, Package } from "lucide-react";
 const CustomerPackingPage = () => {
   const [designs, setDesigns] = useState([]);
   const [selectedDesigns, setSelectedDesigns] = useState([]);
@@ -401,10 +400,6 @@ const SelectDesignTab = ({ designs, selectedDesigns, toggleDesignSelection, hand
   </div>
 );
 
-
-
-
-
 const DesignStatusTab = ({
   history,
   normalizeUrl,
@@ -412,347 +407,377 @@ const DesignStatusTab = ({
   handleSelectFinalDesign,
   handleApprove,
   handleReject,
+  navigate,
   confirmPopup,
   setConfirmPopup,
 }) => {
-  // Track active step per entry
-  const [activeSteps, setActiveSteps] = useState({});
-
   if (!history.length)
-    return <p className="text-gray-500 italic">No designs in progress.</p>;
+    return <p className="text-gray-600">No designs in progress.</p>;
 
-  const steps = [
-    { label: "Trademark & Molecule", icon: PenTool },
-    { label: "Design Selection", icon: FileCheck },
-    { label: "Admin Edits", icon: PenTool },
-    { label: "Final Choice", icon: Check },
-    { label: "Approval", icon: Package },
+  // Define steps
+  const stepLabels = [
+    "Trademark & Molecule Selected",
+    "Select Design",
+    "Admin Edited Version Sent",
+    "Select Final Design",
+    "Approve Final Artwork",
   ];
 
-  const getStepTimestamp = (entry, index) => {
-    switch (index) {
-      case 0:
-        return entry.createdAt || null;
-      case 1:
-        return entry.selectedDesignIds?.length ? entry.updatedAt : null;
-      case 2:
-        return entry.adminEditedDesigns?.length ? entry.updatedAt : null;
-      case 3:
-        return entry.selectedFinalDesign ? entry.updatedAt : null;
-      case 4:
-        return entry.status === "Approved" ? entry.updatedAt : null;
-      default:
-        return null;
-    }
-  };
+  // Helper: get completion timestamp per step
+ const getStepTimestamp = (entry, index) => {
+  switch (index) {
+    case 0: // Trademark & Molecule Selected
+      return entry.createdAt || null;
 
-  const handleStepClick = (entryId, index) => {
-    setActiveSteps((prev) => ({ ...prev, [entryId]: index }));
-  };
+    case 1: // Select Design
+      return entry.selectedDesignIds?.length > 0 ? entry.updatedAt : null;
+
+    case 2: // Admin Edited Version Sent
+      return entry.adminEditedDesigns?.length > 0 ? entry.updatedAt : null;
+
+    case 3: // Select Final Design
+      return entry.selectedFinalDesign ? entry.updatedAt : null;
+
+    case 4: // Approve Final Artwork
+      return entry.status === "Approved" ? entry.updatedAt : null;
+
+    default:
+      return null;
+  }
+};
+
 
   return (
-    <div className="space-y-8">
-      {history.map((entry) => {
-        const activeStep = activeSteps[entry._id] ?? 0;
+    <div className="p-4">
+      <h3 className="text-lg font-semibold mb-4 text-[#d1383a]">
+        Current Design Status
+      </h3>
 
-        return (
-          <div
-            key={entry._id}
-            className="bg-white border rounded-2xl shadow-sm p-6"
-          >
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between border-b pb-4 mb-6">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">
-                  {entry.trademarkName}
-                </h3>
-                <p className="text-sm text-gray-600">
-                  Molecule: {entry.moleculeName}
-                </p>
-                <p className="text-xs text-gray-400">
-                  Submitted: {new Date(entry.createdAt).toLocaleString()}
+      {history.map((entry) => (
+        <div
+          key={entry._id}
+          className="grid grid-cols-1 md:grid-cols-2 gap-6 border rounded p-4 shadow bg-gray-50 mb-4"
+        >
+          {/* ---------- LEFT SIDE: FULL LOGIC (your existing flow) ---------- */}
+          <div>
+            {/* Status + Timestamp */}
+                <p className="font-medium mb-1">
+        Trademark: <span className="text-[#d1383a]">{entry.trademarkName}</span>
+      </p>
+      <p className="font-medium mb-1">
+        Molecule: <span className="text-[#d1383a]">{entry.moleculeName}</span>
+      </p>
+            <p className="font-medium mb-1">Status: {entry.status}</p>
+            <p className="text-sm text-gray-500">
+              Submitted: {new Date(entry.createdAt).toLocaleString()}
+            </p>
+
+            {/* Pending Notice */}
+            {entry.status === "Pending" && (
+              <p className="text-sm text-blue-600 mt-1">
+                Waiting for admin to review your selections...
+              </p>
+            )}
+
+            {/* Selected Designs */}
+            {entry.selectedDesignIds?.length > 0 && (
+              <div className="mt-3">
+                <p className="text-sm font-medium">Your Selected Designs</p>
+                <div className="flex gap-4 mt-1">
+                  {entry.selectedDesignIds.map((design, idx) => (
+                    <img
+                      key={idx}
+                      src={`${BASE_URL}${design.imageUrl}`}
+                      className="w-40 rounded"
+                      alt="Selected"
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Cancel Submission if Pending */}
+            {entry.status === "Pending" && (
+              <div className="mt-4">
+                <button
+                  onClick={() => handleCancelSubmission(entry._id)}
+                  className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+                >
+                  Cancel This Submission
+                </button>
+                <p className="text-sm text-gray-500 mt-1">
+                  You can reselect designs after cancellation.
                 </p>
               </div>
-              <span
-                className={`mt-2 md:mt-0 px-3 py-1 text-xs font-medium rounded-full self-start ${
-                  entry.status === "Approved"
-                    ? "bg-[#d1383a]/10 text-[#d1383a]"
-                    : entry.status === "Pending"
-                    ? "bg-yellow-100 text-yellow-700"
-                    : "bg-blue-100 text-blue-700"
-                }`}
-              >
-                {entry.status}
-              </span>
-            </div>
+            )}
 
-            {/* Stepper */}
-            <div className="flex items-center justify-between relative mb-8">
-              <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-gray-200" />
-              {steps.map((step, index) => {
-                const timestamp = getStepTimestamp(entry, index);
-                const active = activeStep === index;
-                const completed = Boolean(timestamp);
-                const Icon = step.icon;
-
-                return (
-                  <div
-                    key={step.label}
-                    className="relative z-10 flex flex-col items-center cursor-pointer"
-                    onClick={() => handleStepClick(entry._id, index)}
-                  >
-                    <div
-                      className={`flex items-center justify-center w-10 h-10 rounded-full transition-all shadow-sm ${
-                        active
-                          ? "bg-[#d1383a] text-white scale-110"
-                          : completed
-                          ? "bg-gray-800 text-white"
-                          : "bg-gray-300 text-gray-600"
-                      }`}
-                    >
-                      <Icon size={18} />
-                    </div>
-                    <p
-                      className={`mt-2 text-xs font-medium text-center ${
-                        active
-                          ? "text-[#d1383a]"
-                          : completed
-                          ? "text-gray-800"
-                          : "text-gray-500"
-                      }`}
-                    >
-                      {step.label}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Step Content */}
-            <div className="mt-6">
-              {activeStep === 0 && (
-                <p className="text-sm text-gray-600">
-                  Waiting for admin to process trademark and molecule selection.
-                </p>
-              )}
-
-              {activeStep === 1 && (
-                <>
-                  {entry.selectedDesignIds?.length ? (
-                    <div>
-                      <p className="font-medium text-gray-800 mb-2">
-                        Your Selected Designs
-                      </p>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                        {entry.selectedDesignIds.map((design, idx) => (
-                          <img
-                            key={idx}
-                            src={`${BASE_URL}${design.imageUrl}`}
-                            alt="Selected"
-                            className="w-full h-28 object-cover rounded-lg border hover:ring-2 hover:ring-[#d1383a]"
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-gray-500">
-                      No designs selected yet.
-                    </p>
-                  )}
-                  {entry.status === "Pending" && (
-                    <button
-                      onClick={() => handleCancelSubmission(entry._id)}
-                      className="mt-4 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
-                    >
-                      Cancel Submission
-                    </button>
-                  )}
-                </>
-              )}
-
-              {activeStep === 2 && (
-                <>
-                  {entry.adminEditedDesigns?.length ? (
-                    <div>
-                      <p className="font-medium text-gray-800 mb-2">
-                        Admin Edited Versions
-                      </p>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                        {entry.adminEditedDesigns.map((edit, idx) => {
-                          const isSelected =
-                            entry.selectedFinalDesign === edit.url;
-                          return (
-                            <div
-                              key={idx}
-                              className="flex flex-col items-center"
-                            >
-                              <img
-                                src={`${BASE_URL}${normalizeUrl(edit.url)}`}
-                                alt={`Edited ${idx + 1}`}
-                                className={`w-full h-32 object-cover rounded-lg border cursor-pointer ${
-                                  isSelected
-                                    ? "ring-2 ring-[#d1383a]"
-                                    : "hover:ring-2 hover:ring-gray-400"
-                                }`}
-                                onClick={() =>
-                                  setConfirmPopup({
-                                    open: true,
-                                    entryId: entry._id,
-                                    designUrl: edit.url,
-                                  })
-                                }
-                              />
-                              <a
-                                href={`${BASE_URL}${normalizeUrl(edit.url)}`}
-                                download
-                                className="text-xs text-blue-600 underline mt-1"
-                              >
-                                Download
-                              </a>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-gray-500">No admin edits yet.</p>
-                  )}
-                </>
-              )}
-
-              {activeStep === 3 && entry.selectedFinalDesign && (
-                <div>
-                  <p className="font-medium text-gray-800 mb-2">
-                    Your Final Choice
+            {/* Admin Edited Designs */}
+            {entry.adminEditedDesigns?.length > 0 &&
+              entry.status === "Sent for Customer Approval" &&
+              !entry.selectedFinalDesign && (
+                <div className="mt-4 border-l-4 border-yellow-500 pl-4 bg-yellow-50 p-2 rounded">
+                  <p className="text-sm font-medium text-yellow-800">
+                    Admin has sent back {entry.adminEditedDesigns.length} edited
+                    design(s).
                   </p>
-                  <img
-                    src={`${BASE_URL}${normalizeUrl(entry.selectedFinalDesign)}`}
-                    alt="Final Design"
-                    className="w-40 h-40 object-cover rounded-lg border"
-                  />
+                  <p className="text-sm mt-1 text-gray-700">
+                    Please select your preferred version below.
+                  </p>
+
+                  <div className="flex gap-4 mt-2">
+                    {entry.adminEditedDesigns.map((edit, idx) => {
+                      const isSelected =
+                        entry.selectedFinalDesign === edit.url;
+                      return (
+                        <div key={idx} className="flex flex-col items-center">
+                          <div className="relative group">
+                            <img
+                              src={`${BASE_URL}${normalizeUrl(edit.url)}`}
+                              className={`w-full h-24 object-cover rounded cursor-pointer transition-all ${
+                                isSelected
+                                  ? "ring-2 ring-[#d1383a]"
+                                  : "hover:ring-2 hover:ring-gray-400"
+                              }`}
+                              onClick={() =>
+                                setConfirmPopup({
+                                  open: true,
+                                  entryId: entry._id,
+                                  designUrl: edit.url,
+                                })
+                              }
+                              alt={`Edited ${idx + 1}`}
+                            />
+                            <a
+                              href={`${BASE_URL}${normalizeUrl(edit.url)}`}
+                              download
+                              className="text-xs text-blue-600 underline mt-1 block text-center"
+                            >
+                              Download
+                            </a>
+                          </div>
+                          {isSelected && (
+                            <span className="text-xs text-[#d1383a] mt-1 font-semibold">
+                              Selected
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
 
-              {activeStep === 4 && (
-                <>
-                  {entry.finalArtworkUrl ? (
-                    <div>
-                      <p className="font-medium text-gray-800 mb-2">
-                        Final Artwork
-                      </p>
-                      {entry.finalArtworkType === "pdf" ? (
-                        <a
-                          href={`${BASE_URL}/${entry.finalArtworkUrl}`}
-                          download
-                          className="text-blue-600 underline"
-                        >
-                          Download PDF
-                        </a>
-                      ) : (
-                        <img
-                          src={`${BASE_URL}/${entry.finalArtworkUrl}`}
-                          className="w-40 rounded-lg border"
-                          alt="Final Artwork"
-                        />
-                      )}
+            {/* ✅ Confirmation Popup */}
+            {confirmPopup.open && (
+              <div className="fixed inset-0 flex items-center justify-center bg-black/10 bg-opacity z-50">
+                <div className="bg-white p-6 rounded-lg shadow-lg w-80">
+                  <h2 className="text-lg font-semibold mb-4 text-gray-800">
+                    Confirm Selection
+                  </h2>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Are you sure you want to select this design as your final
+                    choice?
+                  </p>
+                  <div className="flex justify-end gap-4">
+                    <button
+                      className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
+                      onClick={() =>
+                        setConfirmPopup({
+                          open: false,
+                          entryId: null,
+                          designUrl: null,
+                        })
+                      }
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      className="px-4 py-2 bg-[#d1383a] text-white rounded hover:bg-[#a12d2f]"
+                      onClick={() => {
+                        handleSelectFinalDesign(
+                          confirmPopup.entryId,
+                          confirmPopup.designUrl
+                        );
+                        setConfirmPopup({
+                          open: false,
+                          entryId: null,
+                          designUrl: null,
+                        });
+                      }}
+                    >
+                      Confirm
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
-                      {entry.finalProductImages?.length > 0 && (
-                        <div className="mt-4">
-                          <p className="text-sm font-medium text-gray-700">
-                            Final Product Images
-                          </p>
-                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-2">
-                            {entry.finalProductImages.map((img, idx) => (
-                              <a
-                                key={idx}
-                                href={`${BASE_URL}${img.url || img}`}
-                                download
-                                className="block"
-                              >
-                                <img
-                                  src={`${BASE_URL}${img.url || img}`}
-                                  alt={`Final Product ${idx + 1}`}
-                                  className="w-full h-28 object-cover rounded-lg border hover:opacity-80"
-                                />
-                              </a>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+            {/* Final Design Selected */}
+            {entry.selectedFinalDesign && (
+              <div className="mt-4">
+                <p className="text-sm font-medium text-green-700">
+                  Your Selected Edited Design
+                </p>
+                {entry.status !== "Approved" && (
+                  <p className="text-sm text-green-700 mt-1">
+                    You've selected your preferred version. Waiting for final
+                    artwork from admin.
+                  </p>
+                )}
+                <div className="mt-2 flex flex-col items-start gap-2">
+                  <img
+                    src={`${BASE_URL}${normalizeUrl(
+                      entry.selectedFinalDesign
+                    )}`}
+                    alt="Final Selection"
+                    className="w-32 h-32 object-cover rounded border border-[#d1383a]"
+                  />
+                  <a
+                    href={`${BASE_URL}${normalizeUrl(entry.selectedFinalDesign)}`}
+                    download
+                    className="text-sm text-blue-600 underline"
+                  >
+                    Download Selected Design
+                  </a>
+                </div>
+              </div>
+            )}
 
-                      {entry.status !== "Approved" && (
-                        <div className="mt-4 flex gap-3">
-                          <button
-                            onClick={() => handleApprove(entry._id)}
-                            className="bg-[#d1383a] text-white px-4 py-2 rounded-lg hover:bg-[#b32c2c]"
-                          >
-                            Approve
-                          </button>
-                          <details>
-                            <summary className="cursor-pointer text-sm text-gray-600 underline">
-                              Reject
-                            </summary>
-                            <RejectBox
-                              entryId={entry._id}
-                              onReject={handleReject}
-                            />
-                          </details>
-                        </div>
-                      )}
-                    </div>
+            {/* Final Artwork Preview */}
+            {entry.finalArtworkUrl && (
+              <>
+                {entry.status !== "Approved" && (
+                  <p className="text-sm text-purple-700 mb-1">
+                    Final artwork is ready! Please preview and approve.
+                  </p>
+                )}
+                <div className="mt-4">
+                  <p className="text-sm font-medium">Final Artwork</p>
+                  {entry.finalArtworkType === "pdf" ? (
+                    <a
+                      href={`${BASE_URL}/${entry.finalArtworkUrl}`}
+                      className="text-blue-600 underline"
+                      download
+                    >
+                      Download PDF
+                    </a>
                   ) : (
-                    <p className="text-sm text-gray-500">
-                      No final artwork uploaded yet.
-                    </p>
+                    <img
+                      src={`${BASE_URL}/${entry.finalArtworkUrl}`}
+                      className="w-32 mt-1 rounded"
+                      alt="Final"
+                    />
                   )}
-                </>
-              )}
-            </div>
-          </div>
-        );
-      })}
+                </div>
+              </>
+            )}
 
-      {/* Confirm Popup */}
-      {confirmPopup.open && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/30 z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg w-80">
-            <h2 className="text-lg font-semibold mb-4">Confirm Selection</h2>
-            <p className="text-sm text-gray-600 mb-4">
-              Are you sure you want to select this design as your final choice?
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
-                onClick={() =>
-                  setConfirmPopup({ open: false, entryId: null, designUrl: null })
-                }
-              >
-                Cancel
-              </button>
-              <button
-                className="px-4 py-2 bg-[#d1383a] text-white rounded hover:bg-[#a12d2f]"
-                onClick={() => {
-                  handleSelectFinalDesign(
-                    confirmPopup.entryId,
-                    confirmPopup.designUrl
-                  );
-                  setConfirmPopup({
-                    open: false,
-                    entryId: null,
-                    designUrl: null,
-                  });
-                }}
-              >
-                Confirm
-              </button>
-            </div>
-          </div>
+            {entry.finalProductImages?.length > 0 && (
+  <div className="mt-4">
+    <p className="text-sm font-medium">📦 Final Product Images</p>
+    <div className="flex flex-wrap gap-4 mt-2">
+      {entry.finalProductImages.map((img, idx) => (
+        <div key={idx} className="flex flex-col items-center">
+          <img
+            src={`${BASE_URL}${img.url || img}`}
+            alt={`Final Product ${idx + 1}`}
+            className="w-32 h-32 object-cover rounded border"
+          />
+          <a
+            href={`${BASE_URL}${img.url || img}`}
+            download
+            className="text-xs mt-1 text-blue-600 underline"
+          >
+            Download
+          </a>
         </div>
-      )}
+      ))}
+    </div>
+  </div>
+)}
+
+            {/* Approve / Reject Buttons */}
+            {entry.status === "Sent for Customer Approval" &&
+              entry.finalArtworkUrl && (
+                <div className="mt-4 space-y-2">
+                  <a
+                    href={`${BASE_URL}/${entry.finalArtworkUrl}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block text-blue-600 underline"
+                  >
+                    View Final Artwork
+                  </a>
+                  <button
+                    onClick={() => handleApprove(entry._id)}
+                    className="bg-[#d1383a] text-white px-4 py-2 rounded mr-2"
+                  >
+                    Approve
+                  </button>
+                  <details className="mt-2">
+                    <summary className="cursor-pointer text-sm text-gray-700 underline">
+                      Reject
+                    </summary>
+                    <RejectBox entryId={entry._id} onReject={handleReject} />
+                  </details>
+                </div>
+              )}
+
+            {/* Approved → Track */}
+        
+
+            {/* Rejection Reason */}
+            {entry.status === "Pending" && entry.rejectionReason && (
+              <p className="mt-2 text-sm text-red-600">
+                Rejected previously: {entry.rejectionReason}
+              </p>
+            )}
+          </div>
+
+          {/* ---------- RIGHT SIDE: TRACKER ---------- */}
+      <div className="relative border-l-4 border-gray-200 pl-8 mt-6">
+  {stepLabels.map((label, index) => {
+    const timestamp = getStepTimestamp(entry, index); // should map correctly
+    const completed = Boolean(timestamp);
+
+    return (
+      <div key={label} className="mb-10 relative">
+        {/* Step Circle */}
+        <div
+          className={`absolute -left-6 top-1 flex items-center justify-center w-10 h-10 rounded-full text-white text-sm font-bold shadow-md ${
+            completed ? "bg-[#d1383a]" : "bg-gray-400"
+          }`}
+        >
+          {index + 1}
+        </div>
+
+        {/* Step Content */}
+        <div className="ml-10">
+          <p
+            className={`text-base font-semibold ${
+              completed ? "text-[#d1383a]" : "text-gray-600"
+            }`}
+          >
+            {label}
+          </p>
+          {timestamp ? (
+            <p className="text-xs text-gray-500 mt-1">
+              ✅ Completed on {new Date(timestamp).toLocaleString()}
+            </p>
+          ) : (
+            <p className="text-xs text-gray-400 mt-1">⏳ Pending</p>
+          )}
+        </div>
+      </div>
+    );
+  })}
+</div>
+
+        </div>
+      ))}
     </div>
   );
 };
-
 
 const TrademarkTab = ({
   trademarks,

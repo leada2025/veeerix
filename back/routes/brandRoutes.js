@@ -78,24 +78,49 @@ router.patch("/brand-request/:id/message", async (req, res) => {
   }
 
   try {
-    const updated = await BrandRequest.findByIdAndUpdate(
-      id,
-      { $push: { messages: { sender, text, timestamp: new Date() } } },
-      { new: true, select: "messages" }
-    );
+    const update = {
+      $push: { messages: { sender, text, timestamp: new Date() } },
+    };
+
+    // ✅ if sender is admin, update lastAdminActivityAt
+    if (sender === "admin") {
+      update.$set = { lastAdminActivityAt: new Date() };
+    }
+
+    const updated = await BrandRequest.findByIdAndUpdate(id, update, {
+      new: true,
+      select: "messages lastAdminActivityAt",
+    });
 
     if (!updated) {
       return res.status(404).json({ message: "Request not found" });
     }
 
     res.json(updated);
- // ✅ frontend always gets this
   } catch (error) {
     console.error("Error saving message:", error);
     res.status(500).json({ message: "Server error" });
   }
 });
 
+
+// PATCH mark chat as seen by customer
+router.patch("/brand-request/:id/seen", async (req, res) => {
+  try {
+    const updated = await BrandRequest.findByIdAndUpdate(
+      req.params.id,
+      { seenByCustomer: new Date() },
+      { new: true, select: "seenByCustomer" }
+    );
+
+    if (!updated) return res.status(404).json({ message: "Request not found" });
+
+    res.json(updated);
+  } catch (err) {
+    console.error("Seen update error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
 
 
 // Update request status or payment
@@ -139,16 +164,21 @@ router.patch("/brand-request/:id/admin", async (req, res) => {
         quotedAmount,
         status,
         adminComment,
+        lastAdminActivityAt: new Date(), // ✅ always refresh on admin action
       },
       { new: true }
     );
+
+    if (!updated) {
+      return res.status(404).json({ message: "Request not found" });
+    }
+
     res.json(updated);
   } catch (error) {
     console.error("Admin update failed:", error);
     res.status(500).json({ message: "Server error" });
   }
 });
-
 
 
 

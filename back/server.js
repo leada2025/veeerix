@@ -14,7 +14,7 @@ const path = require("path");
 const app = express();
 
 app.use(cors({
-  origin: ["http://localhost:5173", "https://veeerix-1.onrender.com"],
+  origin: ["http://localhost:5173","http://localhost:5174", "https://veeerix-1.onrender.com"],
   credentials: true,
 }));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
