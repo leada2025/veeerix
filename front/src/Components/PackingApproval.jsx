@@ -155,14 +155,18 @@ const handleSubmit = async () => {
   };
 
 
+// 🔹 Status tab dot: only while design process is ongoing (before approval)
 useEffect(() => {
   if (history.length > 0) {
     const seenTime = new Date(localStorage.getItem("statusSeenTime") || 0);
 
-    // find if ANY submission has a newer admin update than what we saw
     const hasNewUpdate = history.some((entry) => {
-      const updateTime = entry.lastAdminUpdate ? new Date(entry.lastAdminUpdate) : null;
-      return updateTime && updateTime > seenTime;
+      // ❌ Ignore approved entries
+      if (entry.status !== "Approved") {
+        const updateTime = entry.lastAdminUpdate ? new Date(entry.lastAdminUpdate) : null;
+        return updateTime && updateTime > seenTime;
+      }
+      return false;
     });
 
     setStatusDot(hasNewUpdate);
@@ -170,8 +174,7 @@ useEffect(() => {
 }, [history]);
 
 
-
-
+// 🔹 History tab dot: only for new approved entries
 useEffect(() => {
   if (history.length > 0) {
     const seenTime = new Date(localStorage.getItem("historySeenTime") || 0);
@@ -187,6 +190,7 @@ useEffect(() => {
     setHistoryDot(hasNewApproved);
   }
 }, [history]);
+
 
 
 useEffect(() => {
@@ -316,7 +320,7 @@ useEffect(() => {
 
       {activeTab === "status" && (
         <DesignStatusTab
-          history={history}
+          history={history.filter((h) => h.status !== "Approved")}
           normalizeUrl={normalizeUrl}
           handleCancelSubmission={handleCancelSubmission}
           handleSelectFinalDesign={handleSelectFinalDesign}
@@ -408,6 +412,7 @@ const SelectDesignTab = ({ designs, selectedDesigns, toggleDesignSelection, hand
 const DesignStatusTab = ({
   history,
   normalizeUrl,
+ 
   handleCancelSubmission,
   handleSelectFinalDesign,
   handleApprove,
@@ -417,9 +422,8 @@ const DesignStatusTab = ({
 }) => {
   // Track active step per entry
   const [activeSteps, setActiveSteps] = useState({});
+const [submissionUpdates, setSubmissionUpdates] = useState({});
 
-  if (!history.length)
-    return <p className="text-gray-500 italic">No designs in progress.</p>;
 
   const steps = [
     { label: "Trademark & Molecule", icon: PenTool },
@@ -428,6 +432,44 @@ const DesignStatusTab = ({
     { label: "Final Choice", icon: Check },
     { label: "Approval", icon: Package },
   ];
+useEffect(() => {
+  const updates = {};
+  history.forEach((entry) => {
+    let showDot = false;
+
+    // Only track admin updates, not customer-selected designs
+    (entry.adminEditedDesigns || []).forEach((design) => {
+      const id = design._id || design.url;
+      const lastSeen = localStorage.getItem(`submissionSeen_${id}`);
+      const lastAdminUpdate = design.lastAdminUpdate || entry.updatedAt;
+
+      if (
+        lastAdminUpdate &&
+        (!lastSeen || new Date(lastAdminUpdate) > new Date(lastSeen))
+      ) {
+        showDot = true;
+      }
+    });
+
+    updates[entry._id] = showDot;
+  });
+  setSubmissionUpdates(updates);
+}, [history]);
+
+// ✅ Do conditional return AFTER hooks
+if (!history.length) {
+  return <p className="text-gray-500 italic">No designs in progress.</p>;
+}
+
+  const markAsSeen = (entry) => {
+  (entry.adminEditedDesigns || []).forEach((design) => {
+    const id = design._id || design.url;
+    if (entry.updatedAt) {
+      localStorage.setItem(`submissionSeen_${id}`, entry.updatedAt);
+    }
+  });
+  setSubmissionUpdates((prev) => ({ ...prev, [entry._id]: false }));
+};
 
   const getStepTimestamp = (entry, index) => {
     switch (index) {
@@ -459,6 +501,7 @@ const DesignStatusTab = ({
           <div
             key={entry._id}
             className="bg-white border rounded-2xl shadow-sm p-6"
+             onClick={() => markAsSeen(entry)}
           >
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between border-b pb-4 mb-6">
@@ -473,17 +516,25 @@ const DesignStatusTab = ({
                   Submitted: {new Date(entry.createdAt).toLocaleString()}
                 </p>
               </div>
-              <span
-                className={`mt-2 md:mt-0 px-3 py-1 text-xs font-medium rounded-full self-start ${
-                  entry.status === "Approved"
-                    ? "bg-[#d1383a]/10 text-[#d1383a]"
-                    : entry.status === "Pending"
-                    ? "bg-yellow-100 text-yellow-700"
-                    : "bg-blue-100 text-blue-700"
-                }`}
-              >
-                {entry.status}
-              </span>
+            <span className="relative inline-flex items-center">
+  <span
+    className={`mt-2 md:mt-0 px-3 py-1 text-xs font-medium rounded-full self-start ${
+      entry.status === "Approved"
+        ? "bg-[#d1383a]/10 text-[#d1383a]"
+        : entry.status === "Pending"
+        ? "bg-yellow-100 text-yellow-700"
+        : "bg-blue-100 text-blue-700"
+    }`}
+  >
+    {entry.status}
+  </span>
+
+  {submissionUpdates[entry._id] && (
+    <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-red-500 animate-ping" />
+  )}
+</span>
+
+              
             </div>
 
             {/* Stepper */}
@@ -535,178 +586,155 @@ const DesignStatusTab = ({
                   Waiting for admin to process trademark and molecule selection.
                 </p>
               )}
+{activeStep === 1 && (
+  <>
+    <p className="text-sm text-gray-600 mb-2">
+      Wait for the admin to send edited versions with your trademark "{entry.trademarkName}" and molecule "{entry.moleculeName}".
+    </p>
+    {entry.selectedDesignIds?.length ? (
+      <div>
+        <p className="font-medium text-gray-800 mb-2">Your Selected Designs</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+          {entry.selectedDesignIds.map((design, idx) => (
+            <img
+              key={idx}
+              src={`${BASE_URL}${design.imageUrl}`}
+              alt="Selected"
+              className="w-full h-28 object-cover rounded-lg border hover:ring-2 hover:ring-[#d1383a]"
+            />
+          ))}
+        </div>
+      </div>
+    ) : (
+      <p className="text-sm text-gray-500">No designs selected yet.</p>
+    )}
+    {entry.status === "Pending" && (
+      <button
+        onClick={() => handleCancelSubmission(entry._id)}
+        className="mt-4 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
+      >
+        Cancel Submission
+      </button>
+    )}
+  </>
+)}
 
-              {activeStep === 1 && (
-                <>
-                  {entry.selectedDesignIds?.length ? (
-                    <div>
-                      <p className="font-medium text-gray-800 mb-2">
-                        Your Selected Designs
-                      </p>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                        {entry.selectedDesignIds.map((design, idx) => (
-                          <img
-                            key={idx}
-                            src={`${BASE_URL}${design.imageUrl}`}
-                            alt="Selected"
-                            className="w-full h-28 object-cover rounded-lg border hover:ring-2 hover:ring-[#d1383a]"
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-gray-500">
-                      No designs selected yet.
-                    </p>
-                  )}
-                  {entry.status === "Pending" && (
-                    <button
-                      onClick={() => handleCancelSubmission(entry._id)}
-                      className="mt-4 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
-                    >
-                      Cancel Submission
-                    </button>
-                  )}
-                </>
-              )}
+{activeStep === 2 && (
+  <>
+    <p className="text-sm text-gray-600 mb-2">
+      Select any of the admin edited versions for your final artwork.
+    </p>
+    {entry.adminEditedDesigns?.length ? (
+      <div>
+        <p className="font-medium text-gray-800 mb-2">Admin Edited Versions</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          {entry.adminEditedDesigns.map((edit, idx) => {
+            const isSelected = entry.selectedFinalDesign === edit.url;
+            return (
+              <div key={idx} className="flex flex-col items-center">
+                <img
+                  src={`${BASE_URL}${normalizeUrl(edit.url)}`}
+                  alt={`Edited ${idx + 1}`}
+                  className={`w-full h-32 object-cover rounded-lg border cursor-pointer ${
+                    isSelected ? "ring-2 ring-[#d1383a]" : "hover:ring-2 hover:ring-gray-400"
+                  }`}
+                  onClick={() =>
+                    setConfirmPopup({
+                      open: true,
+                      entryId: entry._id,
+                      designUrl: edit.url,
+                    })
+                  }
+                />
+                <a
+                  href={`${BASE_URL}${normalizeUrl(edit.url)}`}
+                  download
+                  className="text-xs text-blue-600 underline mt-1"
+                >
+                  Download
+                </a>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    ) : (
+      <p className="text-sm text-gray-500">No admin edits yet.</p>
+    )}
+  </>
+)}
 
-              {activeStep === 2 && (
-                <>
-                  {entry.adminEditedDesigns?.length ? (
-                    <div>
-                      <p className="font-medium text-gray-800 mb-2">
-                        Admin Edited Versions
-                      </p>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                        {entry.adminEditedDesigns.map((edit, idx) => {
-                          const isSelected =
-                            entry.selectedFinalDesign === edit.url;
-                          return (
-                            <div
-                              key={idx}
-                              className="flex flex-col items-center"
-                            >
-                              <img
-                                src={`${BASE_URL}${normalizeUrl(edit.url)}`}
-                                alt={`Edited ${idx + 1}`}
-                                className={`w-full h-32 object-cover rounded-lg border cursor-pointer ${
-                                  isSelected
-                                    ? "ring-2 ring-[#d1383a]"
-                                    : "hover:ring-2 hover:ring-gray-400"
-                                }`}
-                                onClick={() =>
-                                  setConfirmPopup({
-                                    open: true,
-                                    entryId: entry._id,
-                                    designUrl: edit.url,
-                                  })
-                                }
-                              />
-                              <a
-                                href={`${BASE_URL}${normalizeUrl(edit.url)}`}
-                                download
-                                className="text-xs text-blue-600 underline mt-1"
-                              >
-                                Download
-                              </a>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-gray-500">No admin edits yet.</p>
-                  )}
-                </>
-              )}
+{activeStep === 3 && entry.selectedFinalDesign && (
+  <>
+    <p className="text-sm text-gray-600 mb-2">
+      Wait for the final artwork from the admin. Once it is sent, click Approve to review the final artwork.
+    </p>
+    <div>
+      <p className="font-medium text-gray-800 mb-2">Your Final Choice</p>
+      <img
+        src={`${BASE_URL}${normalizeUrl(entry.selectedFinalDesign)}`}
+        alt="Final Design"
+        className="w-40 h-40 object-cover rounded-lg border"
+      />
+    </div>
+  </>
+)}
 
-              {activeStep === 3 && entry.selectedFinalDesign && (
-                <div>
-                  <p className="font-medium text-gray-800 mb-2">
-                    Your Final Choice
-                  </p>
+{activeStep === 4 && (
+  <>
+    {entry.finalArtworkUrl ? (
+      <div>
+        <p className="font-medium text-gray-800 mb-2">Final Artwork</p>
+        {entry.finalArtworkType === "pdf" ? (
+          <a href={`${BASE_URL}/${entry.finalArtworkUrl}`} download className="text-blue-600 underline">
+            Download PDF
+          </a>
+        ) : (
+          <img
+            src={`${BASE_URL}/${entry.finalArtworkUrl}`}
+            className="w-40 rounded-lg border"
+            alt="Final Artwork"
+          />
+        )}
+
+        {entry.finalProductImages?.length > 0 && (
+          <div className="mt-4">
+            <p className="text-sm font-medium text-gray-700">Final Product Images</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-2">
+              {entry.finalProductImages.map((img, idx) => (
+                <a key={idx} href={`${BASE_URL}${img.url || img}`} download className="block">
                   <img
-                    src={`${BASE_URL}${normalizeUrl(entry.selectedFinalDesign)}`}
-                    alt="Final Design"
-                    className="w-40 h-40 object-cover rounded-lg border"
+                    src={`${BASE_URL}${img.url || img}`}
+                    alt={`Final Product ${idx + 1}`}
+                    className="w-full h-28 object-cover rounded-lg border hover:opacity-80"
                   />
-                </div>
-              )}
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
 
-              {activeStep === 4 && (
-                <>
-                  {entry.finalArtworkUrl ? (
-                    <div>
-                      <p className="font-medium text-gray-800 mb-2">
-                        Final Artwork
-                      </p>
-                      {entry.finalArtworkType === "pdf" ? (
-                        <a
-                          href={`${BASE_URL}/${entry.finalArtworkUrl}`}
-                          download
-                          className="text-blue-600 underline"
-                        >
-                          Download PDF
-                        </a>
-                      ) : (
-                        <img
-                          src={`${BASE_URL}/${entry.finalArtworkUrl}`}
-                          className="w-40 rounded-lg border"
-                          alt="Final Artwork"
-                        />
-                      )}
+        {entry.status !== "Approved" && (
+          <div className="mt-4 flex gap-3">
+            <button
+              onClick={() => handleApprove(entry._id)}
+              className="bg-[#d1383a] text-white px-4 py-2 rounded-lg hover:bg-[#b32c2c]"
+            >
+              Approve
+            </button>
+            <details>
+              <summary className="cursor-pointer text-sm text-gray-600 underline">Reject</summary>
+              <RejectBox entryId={entry._id} onReject={handleReject} />
+            </details>
+          </div>
+        )}
+      </div>
+    ) : (
+      <p className="text-sm text-gray-500">No final artwork uploaded yet.</p>
+    )}
+  </>
+)}
 
-                      {entry.finalProductImages?.length > 0 && (
-                        <div className="mt-4">
-                          <p className="text-sm font-medium text-gray-700">
-                            Final Product Images
-                          </p>
-                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-2">
-                            {entry.finalProductImages.map((img, idx) => (
-                              <a
-                                key={idx}
-                                href={`${BASE_URL}${img.url || img}`}
-                                download
-                                className="block"
-                              >
-                                <img
-                                  src={`${BASE_URL}${img.url || img}`}
-                                  alt={`Final Product ${idx + 1}`}
-                                  className="w-full h-28 object-cover rounded-lg border hover:opacity-80"
-                                />
-                              </a>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {entry.status !== "Approved" && (
-                        <div className="mt-4 flex gap-3">
-                          <button
-                            onClick={() => handleApprove(entry._id)}
-                            className="bg-[#d1383a] text-white px-4 py-2 rounded-lg hover:bg-[#b32c2c]"
-                          >
-                            Approve
-                          </button>
-                          <details>
-                            <summary className="cursor-pointer text-sm text-gray-600 underline">
-                              Reject
-                            </summary>
-                            <RejectBox
-                              entryId={entry._id}
-                              onReject={handleReject}
-                            />
-                          </details>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-gray-500">
-                      No final artwork uploaded yet.
-                    </p>
-                  )}
-                </>
-              )}
             </div>
           </div>
         );
@@ -824,42 +852,97 @@ const TrademarkTab = ({
 );
 
 
+
 const HistoryTab = ({ history, BASE_URL }) => {
   const [open, setOpen] = useState(false);
   const [selectedSubmissionId, setSelectedSubmissionId] = useState(null);
-  const [submissionUpdates, setSubmissionUpdates] = useState({});
+  const [expanded, setExpanded] = useState({});
+  const [tracklineUpdates, setTracklineUpdates] = useState({});
+  const [detailsUpdates, setDetailsUpdates] = useState({});
 
-  const openTracking = (submissionId, designs) => {
-    setSelectedSubmissionId(submissionId);
+  // Open tracking popup
+  const openTracking = (entry) => {
+    setSelectedSubmissionId(entry._id);
     setOpen(true);
 
-    // mark all designs as seen
-    designs.forEach((design) => {
+    // mark trackingStep/postPrintStep as seen
+    localStorage.setItem(
+      `trackSeen_${entry._id}`,
+      JSON.stringify({
+        trackingStep: entry.trackingStep,
+        postPrintStep: entry.postPrintStep,
+      })
+    );
+    setTracklineUpdates((prev) => ({ ...prev, [entry._id]: false }));
+
+    // mark all designs lastAdminUpdate as seen
+    entry.selectedDesignIds?.forEach((design) => {
       if (design.lastAdminUpdate) {
-        localStorage.setItem(`submissionSeen_${design._id}`, design.lastAdminUpdate);
+        localStorage.setItem(
+          `submissionSeen_${design._id}`,
+          design.lastAdminUpdate
+        );
+      }
+    });
+  };
+
+  // Toggle details view
+  const toggleDetails = (entry) => {
+    setExpanded((prev) => ({
+      ...prev,
+      [entry._id]: !prev[entry._id],
+    }));
+
+    // mark details as seen (final artwork / product images)
+    const detailsTimestamp =
+      entry.lastAdminUpdate || entry.finalArtworkUpdatedAt || entry.finalProductImagesUpdatedAt;
+
+    if (detailsTimestamp) {
+      localStorage.setItem(`detailsSeen_${entry._id}`, detailsTimestamp);
+      setDetailsUpdates((prev) => ({ ...prev, [entry._id]: false }));
+    }
+  };
+
+  // Compute blue/red dots whenever history OR detailsUpdates changes
+  useEffect(() => {
+    const tUpdates = {};
+    const dUpdates = {};
+
+    history.forEach((entry) => {
+      // --- Blue dot: trackingStep/postPrintStep changes ---
+      let lastSeenTrack = {};
+      const lastSeenTrackRaw = localStorage.getItem(`trackSeen_${entry._id}`);
+      if (lastSeenTrackRaw) {
+        try {
+          lastSeenTrack = JSON.parse(lastSeenTrackRaw);
+        } catch (e) {
+          lastSeenTrack = {};
+        }
+      }
+
+      if (
+        entry.trackingStep !== lastSeenTrack.trackingStep ||
+        entry.postPrintStep !== lastSeenTrack.postPrintStep
+      ) {
+        tUpdates[entry._id] = true;
+      }
+
+      // --- Red dot: lastAdminUpdate / artwork / product images ---
+      const lastSeenDetails = localStorage.getItem(`detailsSeen_${entry._id}`);
+      const detailsTimestamp =
+        entry.lastAdminUpdate || entry.finalArtworkUpdatedAt || entry.finalProductImagesUpdatedAt;
+
+      if (
+        detailsTimestamp &&
+        (!lastSeenDetails || new Date(detailsTimestamp) > new Date(lastSeenDetails))
+      ) {
+        dUpdates[entry._id] = true;
       }
     });
 
-    // hide red dot for this submission
-    setSubmissionUpdates((prev) => ({ ...prev, [submissionId]: false }));
-  };
-
-  // compute red dots whenever history changes
-  useEffect(() => {
-    const updates = {};
-    history.forEach((entry) => {
-      let showDot = false;
-      entry.selectedDesignIds?.forEach((design) => {
-        const lastSeen = localStorage.getItem(`submissionSeen_${design._id}`);
-        const lastAdminUpdate = design.lastAdminUpdate;
-        if (lastAdminUpdate && (!lastSeen || new Date(lastAdminUpdate) > new Date(lastSeen))) {
-          showDot = true;
-        }
-      });
-      updates[entry._id] = showDot;
-    });
-    setSubmissionUpdates(updates);
-  }, [history]);
+    setTracklineUpdates(tUpdates);
+    setDetailsUpdates(dUpdates);
+  }, [history, detailsUpdates]); // <- include detailsUpdates here
 
   return (
     <div className="mt-6">
@@ -872,46 +955,77 @@ const HistoryTab = ({ history, BASE_URL }) => {
       ) : (
         <ul className="space-y-4">
           {history.map((entry) => (
-            <li
-              key={entry._id}
-              className="border rounded p-3 bg-gray-50 shadow flex justify-between items-center"
-            >
-              {/* Left side: status + thumbnails */}
-              <div className="flex flex-col">
-                         <p className="font-medium mb-1">
-        Trademark: <span className="text-[#d1383a]">{entry.trademarkName}</span>
-      </p>
-      <p className="font-medium mb-1">
-        Molecule: <span className="text-[#d1383a]">{entry.moleculeName}</span>
-      </p>
-                <p className="font-medium">Status: {entry.status}</p>
-                <p className="text-sm text-gray-500">
-                  Submitted: {new Date(entry.createdAt).toLocaleString()}
-                </p>
-                {entry.selectedDesignIds?.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-4">
-                    {entry.selectedDesignIds.map((design) => (
-                      <img
-                        key={design._id}
-                        src={`${BASE_URL}${design.imageUrl}`}
-                        className="w-16 h-16 object-cover rounded border"
-                        alt="Selected"
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
+            <li key={entry._id} className="border rounded p-3 bg-gray-50 shadow">
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="font-medium mb-1">
+                    Trademark: <span className="text-[#d1383a]">{entry.trademarkName}</span>
+                  </p>
+                  <p className="font-medium mb-1">
+                    Molecule: <span className="text-[#d1383a]">{entry.moleculeName}</span>
+                  </p>
+                  <p className="font-medium">Status: {entry.status}</p>
+                  <p className="text-sm text-gray-500">
+                    Submitted: {new Date(entry.createdAt).toLocaleString()}
+                  </p>
 
-              {/* Trackline button */}
-              <button
-                onClick={() => openTracking(entry._id, entry.selectedDesignIds)}
-                className="ml-4 px-4 py-2 bg-[#d1383a] text-white rounded-lg text-sm shadow hover:bg-[#b52f32] relative"
-              >
-                Trackline
-                {submissionUpdates[entry._id] && (
-                  <span className="absolute top-0 -right-1 w-3 h-3 rounded-full bg-blue-500 animate-ping" />
-                )}
-              </button>
+                  {entry.selectedDesignIds?.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-4">
+                      {entry.selectedDesignIds.map((design) => (
+                        <img
+                          key={design._id}
+                          src={`${BASE_URL}${design.imageUrl}`}
+                          className="w-16 h-16 object-cover rounded border"
+                          alt="Selected"
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-col gap-2 ml-4">
+                  <button
+                    onClick={() => openTracking(entry)}
+                    className="px-4 py-2 bg-[#d1383a] text-white rounded-lg text-sm shadow hover:bg-[#b52f32] relative"
+                  >
+                    Trackline
+                    {tracklineUpdates[entry._id] && (
+                      <span className="absolute top-0 -right-1 w-3 h-3 rounded-full bg-blue-500 animate-ping" />
+                    )}
+                  </button>
+
+                  <button
+                    onClick={() => toggleDetails(entry)}
+                    className="px-4 py-2 bg-[#d1383a] text-white rounded-lg text-sm shadow hover:bg-[#b52f32] relative"
+                  >
+                    {expanded[entry._id] ? "Hide Details" : "View Details"}
+                    {detailsUpdates[entry._id] && (
+                      <span className="absolute top-0 -right-1 w-3 h-3 rounded-full bg-red-500 animate-ping" />
+                    )}
+                  </button>
+                </div>
+              </div>
+                                                  {detailsUpdates[entry._id] && (
+      <p className="text-sm text-red-500 mt-1">
+        New product update available. Click "View Details" to see the latest artwork or product images.
+      </p>
+    )}
+
+              {expanded[entry._id] && (
+                <div className="mt-6">
+                  <DesignStatusTab
+                    history={[entry]}
+                    BASE_URL={BASE_URL}
+                    normalizeUrl={(url) => url}
+                    handleCancelSubmission={() => {}}
+                    handleSelectFinalDesign={() => {}}
+                    handleApprove={() => {}}
+                    handleReject={() => {}}
+                    confirmPopup={{ open: false }}
+                    setConfirmPopup={() => {}}
+                  />
+                </div>
+              )}
             </li>
           ))}
         </ul>
@@ -937,7 +1051,6 @@ const HistoryTab = ({ history, BASE_URL }) => {
     </div>
   );
 };
-
 
 const RejectBox = ({ entryId, onReject }) => {
   const [reason, setReason] = useState("");
