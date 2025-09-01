@@ -4,10 +4,43 @@ const Customer = require("../models/Customer");
 const Order = require("../models/Order"); // ✅ Correct model import
 
 // --- Customers CRUD ---
+// --- Customers CRUD ---
 router.get("/customers", async (req, res) => {
   const customers = await Customer.find();
   res.json(customers);
 });
+
+// --- Orders related to Distribution (filter by distributor) ---
+router.get("/orders/:customerId", async (req, res) => {
+  const { customerId } = req.params;
+  const orders = await Order.find({ customerId }) 
+    .populate("customerId", "name email") // distributor
+    .populate("subCustomerId", "name");   // retailer
+  res.json(orders);
+});
+
+// Get orders for all customers of a distributor
+router.get("/orders/distributor/:distributorId", async (req, res) => {
+  const { distributorId } = req.params;
+
+  try {
+    // Step 1: Get all customers of this distributor
+    const customers = await Customer.find({ distributorId }); // make sure Customer model has distributorId field
+    const customerIds = customers.map(c => c._id);
+
+    // Step 2: Get orders for these customers (retailers)
+    const orders = await Order.find({ subCustomerId: { $in: customerIds } })
+      .populate("customerId", "name email")      // distributor info
+      .populate("subCustomerId", "name email"); // retailer info
+
+    res.json(orders);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch customers' orders" });
+  }
+});
+
+
 
 router.post("/customers", async (req, res) => {
   const customer = new Customer(req.body);
@@ -25,18 +58,16 @@ router.delete("/customers/:id", async (req, res) => {
   res.json({ success: true });
 });
 
-// --- Orders related to Distribution ---
-router.get("/orders", async (req, res) => {
-  const orders = await Order.find()
-    .populate("customerId", "name email") // Main user (distributor)
-    .populate("subCustomerId", "name");    // Sub-customer (retailer)
-  res.json(orders);
-});
-
+// --- Create Order ---
 router.post("/orders", async (req, res) => {
   const order = new Order(req.body);
   await order.save();
-  res.json(order);
+  const populated = await Order.findById(order._id)
+    .populate("customerId", "name email")
+    .populate("subCustomerId", "name");
+  res.json(populated);
 });
+
+
 
 module.exports = router;

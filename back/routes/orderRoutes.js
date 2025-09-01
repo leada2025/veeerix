@@ -8,18 +8,25 @@ const BrandRequest = require("../models/BrandRequest");
 
 
 // POST /api/orders/from-trademark
+// POST /api/orders/from-trademark
 router.post("/from-trademark", async (req, res) => {
   try {
-    const { customerId, brandName, moleculeName, quantity } = req.body;
+    const { customerId, brandName, moleculeName, customMolecule, quantity } = req.body;
 
-    if (!customerId || !brandName || !moleculeName || !quantity) {
+    if (!customerId || !brandName || !quantity) {
       return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    // ✅ Ensure at least one of moleculeName or customMolecule is provided
+    if (!moleculeName && !customMolecule) {
+      return res.status(400).json({ error: "Either moleculeName or customMolecule is required" });
     }
 
     const newOrder = await Order.create({
       customerId,
       brandName,
-      moleculeName,
+      moleculeName: moleculeName || "",     // fallback to empty
+      customMolecule: customMolecule || "", // fallback to empty
       quantity,
     });
 
@@ -30,12 +37,17 @@ router.post("/from-trademark", async (req, res) => {
   }
 });
 
-// GET all orders (admin view)
-// GET latest order by customerId
+
+// GET latest order by customerId (customer portal)
 router.get('/customer/:customerId', async (req, res) => {
   try {
     const { customerId } = req.params;
-    const allOrders = await Order.find({ customerId }).sort({ createdAt: -1 });
+
+    const allOrders = await Order.find({ customerId })
+      .sort({ createdAt: -1 })
+      .populate('customerId', 'name email')       // distributor info
+      .populate('subCustomerId', 'name email');   // retailer/customer info
+
     res.json(allOrders);
   } catch (err) {
     console.error(err);
@@ -45,7 +57,10 @@ router.get('/customer/:customerId', async (req, res) => {
 
 
 
+
 // GET orders for a specific customer (customer portal)
+// GET /orders/options/:customerId
+// GET /orders/options/:customerId
 // GET /orders/options/:customerId
 router.get("/options/:customerId", async (req, res) => {
   try {
@@ -74,12 +89,16 @@ router.get("/options/:customerId", async (req, res) => {
       status: "Paid",
     }).sort({ updatedAt: -1 });
 
-    if (!usableBrands.length || !paidMolecules.length) {
+    if (!usableBrands.length && !paidMolecules.length) {
       return res.status(404).json({ error: "No valid brands or paid molecules found" });
     }
 
     const brandNames = usableBrands.map((b) => b.selectedName);
-    const moleculeNames = paidMolecules.map((m) => m.moleculeName);
+
+    // ✅ pick moleculeName OR customMolecule
+    const moleculeNames = paidMolecules.map(
+      (m) => m.moleculeName || m.customMolecule
+    );
 
     res.json({ brandNames, moleculeNames });
   } catch (error) {

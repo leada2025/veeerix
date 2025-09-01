@@ -1,20 +1,33 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "../api/Axios";
 import { useSource } from "../Context/SourceContext";
+import { Settings } from "lucide-react";
 
 const LandingPage = () => {
   const navigate = useNavigate();
-  const { source, setSource } = useSource(); // get both
+  const { source, setSource } = useSource();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef(null);
 
-  const isFishman = source === "fishman"; // will be true after login
+  const isFishman = source === "fishman";
 
+  // Scroll to top on mount
   useEffect(() => {
-    window.scroll(0, 0);
+    window.scrollTo(0, 0);
+
+    // Close dropdown if clicked outside
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const handleLogin = async (e) => {
@@ -30,11 +43,10 @@ const LandingPage = () => {
       localStorage.setItem("authToken", token);
       localStorage.setItem("user", JSON.stringify(user));
 
-      // ✅ Save source as fishman
+      // Save source as Fishman
       setSource("fishman");
       localStorage.setItem("selectedSource", "fishman");
 
-      // Redirect
       navigate("/fbsdashboard");
     } catch (err) {
       console.error(err);
@@ -46,9 +58,32 @@ const LandingPage = () => {
 
   return (
     <div className="min-h-screen bg-[#7b4159] text-white font-sans flex flex-col">
-      {/* Hero + Login Split */}
+      {/* Top-right Admin Dropdown */}
+      <div className="absolute top-5 right-5 z-10" ref={dropdownRef}>
+        <button
+          onClick={() => setShowDropdown(!showDropdown)}
+          className="p-2 rounded-full hover:bg-white/20 transition"
+        >
+          <Settings className="h-6 w-6" />
+        </button>
+        {showDropdown && (
+          <div className="absolute right-0 mt-2 w-40 bg-white text-black shadow-lg rounded-md py-2 z-50">
+            <button
+              onClick={() => {
+                setShowDropdown(false);
+                navigate("/fbsadmin");
+              }}
+              className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+            >
+              Admin
+            </button>
+           
+          </div>
+        )}
+      </div>
+
       <section className="flex flex-col md:flex-row min-h-screen">
-        {/* Left Hero */}
+        {/* Left Hero Section */}
         <div className="md:w-2/3 flex flex-col justify-center items-start px-10 md:px-20 py-20 bg-gradient-to-b from-[#7b4159] to-[#9c5d77]">
           <h1 className="text-3xl md:text-5xl font-bold mb-6 leading-snug">
             Professional Trademark Registration Services
@@ -64,7 +99,7 @@ const LandingPage = () => {
           </a>
         </div>
 
-        {/* Right Login */}
+        {/* Right Login Section */}
         <div className="md:w-1/3 flex items-center justify-center bg-[#5c2f48] px-8 py-16">
           <div className="w-full max-w-md bg-white rounded-2xl p-8 shadow-xl text-[#7b4159]">
             <h2 className="text-2xl font-bold mb-5 text-center">Login</h2>

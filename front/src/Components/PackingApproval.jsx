@@ -341,63 +341,92 @@ useEffect(() => {
 
 /* -------------------- TABS -------------------- */
 const SelectDesignTab = ({ designs, selectedDesigns, toggleDesignSelection, handleSubmit }) => (
-  <div>
-    <h2 className="text-xl font-bold mb-6 text-[#d1383a]">
+  <div className="bg-white shadow-lg rounded-2xl p-8 border border-gray-200">
+    {/* Heading */}
+    <h2 className="text-2xl font-bold mb-8 flex items-center gap-2 text-gray-900">
+      <span className="w-2 h-8 bg-[#d1383a] rounded-full"></span>
       Select 2–3 Packing Texture Designs
     </h2>
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+
+    {/* Design Grid */}
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
       {designs.map((design) => {
         const isSelected = selectedDesigns.some((d) => d.id === design.id);
         const selectionLimitReached = selectedDesigns.length >= 3 && !isSelected;
+
         return (
           <div
             key={design.id}
             onClick={() => {
               if (!selectionLimitReached) toggleDesignSelection(design);
             }}
-            className={`cursor-pointer border rounded p-2 text-center transition-all duration-200 ${
+            className={`relative group cursor-pointer rounded-xl overflow-hidden shadow-md border transition-all duration-300 transform ${
               isSelected
-                ? "border-[#d1383a] ring-2 ring-[#d1383a]"
-                : "border-gray-300 hover:border-[#999]"
+                ? "border-[#d1383a] ring-2 ring-[#d1383a] scale-105"
+                : "border-gray-200 hover:border-[#d1383a]/50 hover:scale-102"
             } ${selectionLimitReached ? "opacity-50 cursor-not-allowed" : ""}`}
           >
+            {/* Image */}
             <img
               src={design.image}
-              className="w-full h-40 object-cover rounded"
               alt={design.label}
+              className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
             />
-            <div className="mt-2 font-medium">{design.label}</div>
+
+            {/* Overlay if selected */}
+            {isSelected && (
+              <div className="absolute inset-0 bg-black/40 flex items-center justify-center text-white text-lg font-semibold">
+                ✅ Selected
+              </div>
+            )}
+
+            {/* Label */}
+            <div className="p-3 text-center bg-gray-50 font-semibold text-gray-800">
+              {design.label}
+            </div>
           </div>
         );
       })}
     </div>
 
+    {/* Selected Preview */}
     {selectedDesigns.length > 0 && (
-      <div>
-        <p className="text-sm font-medium mb-2 text-gray-700">
-          Selected: {selectedDesigns.map((d) => d.label).join(", ")}
+      <div className="mt-6">
+        <p className="text-sm font-medium mb-3 text-gray-700">
+          Selected Designs:{" "}
+          <span className="text-[#d1383a] font-semibold">
+            {selectedDesigns.map((d) => d.label).join(", ")}
+          </span>
         </p>
-        <div className="flex gap-4 mt-2 flex-wrap">
+
+        <div className="flex gap-4 flex-wrap mb-6">
           {selectedDesigns.map((design) => (
-            <img
+            <div
               key={design.id}
-              src={design.image}
-              className="w-32 h-32 object-cover rounded"
-              alt={design.label}
-            />
+              className="w-28 h-28 rounded-lg overflow-hidden shadow border border-gray-200"
+            >
+              <img
+                src={design.image}
+                alt={design.label}
+                className="w-full h-full object-cover"
+              />
+            </div>
           ))}
         </div>
-        <div className="text-right mt-4 flex justify-end gap-4">
+
+        {/* Submit Button */}
+        <div className="flex justify-end">
           <button
-            className={`px-6 py-2 rounded text-white ${
-              selectedDesigns.length >= 2 && selectedDesigns.length <= 3
-                ? "bg-[#d1383a] hover:bg-[#b8302d]"
-                : "bg-gray-400 cursor-not-allowed"
-            }`}
             disabled={selectedDesigns.length < 2}
             onClick={handleSubmit}
+            className={`px-8 py-3 rounded-lg font-semibold shadow-md transition 
+              ${
+                selectedDesigns.length >= 2 && selectedDesigns.length <= 3
+                  ? "bg-gradient-to-r from-[#d1383a] to-[#b73030] text-white hover:opacity-90"
+                  : "bg-gray-300 text-gray-600 cursor-not-allowed"
+              }`}
           >
-            Submit for Editing
+            Submit for Editing →
           </button>
         </div>
       </div>
@@ -782,6 +811,8 @@ if (!history.length) {
 };
 
 
+import { BadgeCheck, Atom, ArrowRightCircle } from "lucide-react";
+
 const TrademarkTab = ({
   trademarks,
   molecules,
@@ -791,16 +822,25 @@ const TrademarkTab = ({
   setSelectedMolecule,
   setActiveTab,
 }) => (
-  <div>
-    <h2 className="text-xl font-bold mb-6 text-[#d1383a]">Select Trademark & Molecule</h2>
+  <div className="bg-white shadow-xl rounded-2xl p-8 border border-gray-100 hover:shadow-2xl transition">
+    {/* Heading */}
+    <div className="flex items-center gap-3 mb-8">
+      <span className="w-2 h-8 bg-[#d1383a] rounded-full"></span>
+      <h2 className="text-2xl font-bold text-gray-900">
+        Select Trademark & Molecule
+      </h2>
+    </div>
 
     {/* Trademark Dropdown */}
     <div className="mb-6">
-      <label className="block text-sm font-medium mb-1">Trademark</label>
+      <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+        <BadgeCheck className="w-4 h-4 text-[#d1383a]" />
+        Trademark
+      </label>
       <select
         value={selectedTrademark || ""}
         onChange={(e) => setSelectedTrademark(e.target.value)}
-        className="w-full border rounded px-3 py-2"
+        className="w-full p-3 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-[#d1383a] focus:border-[#d1383a] transition shadow-sm hover:shadow-md"
       >
         <option value="">-- Select Trademark --</option>
         {trademarks.map((tm) => (
@@ -812,44 +852,53 @@ const TrademarkTab = ({
     </div>
 
     {/* Molecule Dropdown */}
-{/* Molecule Dropdown */}
-<div className="mb-6">
-  <label className="block text-sm font-medium mb-1">Molecule</label>
-  <select
-    value={selectedMolecule || ""}
-    onChange={(e) => setSelectedMolecule(e.target.value)}
-    className="w-full border rounded px-3 py-2"
-  >
-    <option value="">-- Select Molecule --</option>
-    {molecules.map((mol) => {
-      const displayName = mol.moleculeName?.trim() || mol.customMolecule || "Unnamed";
-      return (
-        <option key={mol._id} value={displayName}>
-          {displayName}
-        </option>
-      );
-    })}
-  </select>
-</div>
+    <div className="mb-8">
+      <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+        <Atom className="w-4 h-4 text-[#d1383a]" />
+        Molecule
+      </label>
+      <select
+        value={selectedMolecule || ""}
+        onChange={(e) => setSelectedMolecule(e.target.value)}
+        className="w-full p-3 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-[#d1383a] focus:border-[#d1383a] transition shadow-sm hover:shadow-md"
+      >
+        <option value="">-- Select Molecule --</option>
+        {molecules.map((mol) => {
+          const displayName =
+            mol.moleculeName?.trim() || mol.customMolecule || "Unnamed";
+          return (
+            <option key={mol._id} value={displayName}>
+              {displayName}
+            </option>
+          );
+        })}
+      </select>
+    </div>
 
-
-
-
+    {/* Continue Button */}
     <div className="text-right">
       <button
-        className={`px-6 py-2 rounded text-white ${
-          selectedTrademark && selectedMolecule
-            ? "bg-[#d1383a] hover:bg-[#b8302d]"
-            : "bg-gray-400 cursor-not-allowed"
-        }`}
         disabled={!selectedTrademark || !selectedMolecule}
         onClick={() => setActiveTab("select")}
+        className={`px-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 shadow-md transition-all duration-300 
+          ${
+            selectedTrademark && selectedMolecule
+              ? "bg-gradient-to-r from-[#d1383a] to-[#b73030] text-white hover:opacity-90 hover:scale-[1.02] hover:shadow-lg"
+              : "bg-gray-200 text-gray-500 cursor-not-allowed"
+          }`}
       >
-        Continue →
+        Continue
+        <ArrowRightCircle
+          className={`w-5 h-5 transition ${
+            selectedTrademark && selectedMolecule ? "opacity-100" : "opacity-40"
+          }`}
+        />
       </button>
     </div>
   </div>
 );
+
+
 
 
 
@@ -942,7 +991,7 @@ const HistoryTab = ({ history, BASE_URL }) => {
 
     setTracklineUpdates(tUpdates);
     setDetailsUpdates(dUpdates);
-  }, [history, detailsUpdates]); // <- include detailsUpdates here
+  }, [history]); // <- include detailsUpdates here
 
   return (
     <div className="mt-6">
