@@ -2,13 +2,12 @@ import React, { useEffect, useState } from "react";
 import axios from "../api/Axios";
 import TrademarkStatusTracker from "./TrademarkStatusTracker";
 import { useSource } from "../Context/SourceContext";
+import { Loader2, Tag } from "lucide-react"; // icons for styling
+import { motion } from "framer-motion";
 
 const TrademarkTracklinePage = () => {
-  const [submission, setSubmission] = useState(null);
+  const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [clearedIds, setClearedIds] = useState([]);
-
-  
 
   const { source } = useSource();
   const user = JSON.parse(localStorage.getItem("user"));
@@ -19,65 +18,95 @@ const TrademarkTracklinePage = () => {
 
   useEffect(() => {
     if (customerId) {
-      fetchActiveSubmission();
+      fetchActiveSubmissions();
     }
   }, [customerId]);
-const fetchActiveSubmission = async () => {
-  try {
-    const res = await axios.get(`/api/trademark/${customerId}`);
-    setSubmission(res.data); // <- show all submissions
-  } catch (err) {
-    console.error("Error fetching submissions:", err);
-  } finally {
-    setLoading(false);
-  }
-};
 
-  if (loading) return <div className="p-4">Loading...</div>;
+  const fetchActiveSubmissions = async () => {
+    try {
+      const res = await axios.get(`/api/trademark/${customerId}`);
+      setSubmissions(res.data || []);
+    } catch (err) {
+      console.error("Error fetching submissions:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-[200px]">
+        <Loader2 className="animate-spin text-gray-500 w-6 h-6" />
+        <span className="ml-2 text-gray-600 text-sm">Loading tracking...</span>
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-3xl mx-auto mt-10 p-6 bg-white rounded-md shadow">
-      <h2 className="text-2xl font-bold mb-6" style={{ color: primaryColor }}>
+    <div className="max-w-4xl mx-auto mt-10 p-6 bg-white rounded-2xl shadow-lg border border-gray-100">
+      <h2
+        className="text-3xl font-bold mb-8 text-center"
+        style={{ color: primaryColor }}
+      >
         Trademark Tracking
       </h2>
 
-     {submission.length === 0 ? (
-  <p className="text-gray-500 text-sm">
-    No active trademark tracking found. You may have completed your submissions or not started one yet.
-  </p>
-) : (
- submission
- .filter((s) => !clearedIds.includes(s._id) && !s.isDirect)
+      {submissions.length === 0 ? (
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-gray-500 text-center text-base bg-gray-50 p-4 rounded-lg"
+        >
+          No active trademark tracking found. You may have completed your
+          submissions or not started one yet.
+        </motion.p>
+      ) : (
+        <div className="space-y-6">
+          {submissions
+            .filter((s) => !s.isDirect) // keep your filter logic
+            .map((s, index) => (
+              <motion.div
+                key={s._id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                className="p-6 bg-gray-50 rounded-xl shadow-md border border-gray-100 hover:shadow-lg transition"
+              >
+                <div className="flex items-center gap-2 mb-3">
+                  <Tag
+                    size={18}
+                    style={{ color: primaryColor }}
+                    className="shrink-0"
+                  />
+                  <h3
+                    className="text-lg font-semibold truncate"
+                    style={{ color: primaryColor }}
+                  >
+                    {s.selectedName || "Pending Selection"}
+                  </h3>
+                </div>
 
-  .map((s) => (
-    <div key={s._id} className="mb-6 p-4 border rounded-md bg-gray-50 shadow-sm">
-      <h3 className="text-lg font-semibold mb-2" style={{ color: primaryColor }}>
-        Tracking: {s.selectedName || "Pending Selection"}
-      </h3>
+                <TrademarkStatusTracker
+                  currentStatus={s.trackingStatus}
+                  highlightColor={primaryColor}
+                />
 
-      <TrademarkStatusTracker
-        currentStatus={s.trackingStatus}
-        highlightColor={primaryColor}
-      />
-
-      <p className="mt-3 text-sm text-gray-600">
-        Current Status:{" "}
-        <span className="font-medium" style={{ color: primaryColor }}>
-          {s.trackingStatus}
-        </span>
-      </p>
-
-      <button
-        onClick={() => setClearedIds((prev) => [...prev, s._id])}
-        className="mt-3 text-xs text-red-500 hover:underline"
-      >
-        Clear from list
-      </button>
-    </div>
-))
-
-)}
-
+                <p className="mt-4 text-sm text-gray-700">
+                  Current Status:{" "}
+                  <span
+                    className="font-medium px-2 py-1 rounded-md"
+                    style={{
+                      backgroundColor: primaryColor + "20",
+                      color: primaryColor,
+                    }}
+                  >
+                    {s.trackingStatus}
+                  </span>
+                </p>
+              </motion.div>
+            ))}
+        </div>
+      )}
     </div>
   );
 };

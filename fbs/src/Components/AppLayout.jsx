@@ -18,7 +18,7 @@ const AppLayout = () => {
   }, [activeBrand, location.pathname, navigate]);
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-screen">
       <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
       <div className="flex flex-col flex-1">
         <Navbar />

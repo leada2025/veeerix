@@ -16,8 +16,8 @@ const CustomerPortal = () => {
   const user = JSON.parse(localStorage.getItem("user"));
   const customerId = user?.id;
   const primaryColor = source === "fishman" ? "#7b4159" : "#d1383a";
+  const accentColor = "#A0522D"; // brownish accent panel
 
-  // Viewed timestamps
   const [viewedTimestamps, setViewedTimestamps] = useState(
     JSON.parse(localStorage.getItem("viewedTimestamps")) || {}
   );
@@ -127,108 +127,129 @@ const CustomerPortal = () => {
             return (
               <div
                 key={sub._id}
-                className={`relative p-6 rounded-2xl shadow-lg transform transition-all hover:scale-105 hover:shadow-2xl`}
+                className={`relative p-6 rounded-2xl shadow-xl transform transition-all hover:scale-105 hover:shadow-2xl flex overflow-hidden`}
                 style={{
-                  background: `linear-gradient(135deg, ${primaryColor}20, #fff)`,
-                  border: `2px solid ${primaryColor}`,
+                  background: "#fff",
+                  borderRadius: "1rem",
+                  border: `1px solid #e2e8f0`,
                 }}
               >
-                {updatedRecently && (
-                  <span
-                    className="absolute top-3 right-3 px-2 py-1 text-xs font-semibold text-white rounded-full animate-pulse"
+                {/* Accent Panel */}
+                <div
+                  className="absolute left-0 top-0 h-full w-2 rounded-l-2xl"
+                  style={{ backgroundColor: accentColor }}
+                ></div>
+
+                <div className="ml-4 w-full">
+                  {updatedRecently && (
+                    <span
+                      className="absolute top-3 right-3 px-2 py-1 text-xs font-semibold text-white rounded-full animate-pulse"
+                      style={{ backgroundColor: primaryColor }}
+                    >
+                      Updated
+                    </span>
+                  )}
+
+                  <h3 className="text-lg font-semibold mb-2" style={{ color: primaryColor }}>
+                    Request #{index + 1}
+                  </h3>
+                  <p className="text-sm text-gray-700 mb-2">
+                    Status:{" "}
+                    <span
+                      className={`font-medium ${
+                        isComplete ? "text-green-600" : "text-yellow-600"
+                      }`}
+                    >
+                      {isComplete ? "Completed" : "In Progress"}
+                    </span>
+                  </p>
+                  
+                  {/* Progress Bar */}
+                  <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden mb-4">
+                    <div
+                      className="h-2 rounded-full"
+                      style={{
+                        width: `${(completedStages / 5) * 100}%`,
+                        backgroundColor: primaryColor,
+                        transition: "width 0.5s ease-in-out",
+                      }}
+                    ></div>
+                  </div>
+
+                  <p className="text-xs text-gray-500 mb-4">
+                    Last Updated: {dayjs(sub.updatedAt).format("MMM D, YYYY h:mm A")}
+                  </p>
+
+                  <button
+                    onClick={() => handleViewDetails(sub)}
+                    className="w-full py-2 rounded-lg text-white font-medium transition-transform transform hover:scale-105"
                     style={{ backgroundColor: primaryColor }}
                   >
-                    Updated
-                  </span>
-                )}
-
-                <h3 className="text-lg font-semibold mb-2" style={{ color: primaryColor }}>
-                  Request #{index + 1}
-                </h3>
-                <p className="text-sm text-gray-700 mb-2">
-                  Status:{" "}
-                  <span
-                    className={`font-medium ${
-                      isComplete ? "text-green-600" : "text-yellow-600"
-                    }`}
-                  >
-                    {isComplete ? "Completed" : "In Progress"}
-                  </span>
-                </p>
-                
-                {/* Progress Bar */}
-                <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden mb-4">
-                  <div
-                    className="h-2 rounded-full"
-                    style={{
-                      width: `${(completedStages / 5) * 100}%`,
-                      backgroundColor: primaryColor,
-                      transition: "width 0.5s ease-in-out",
-                    }}
-                  ></div>
+                    View Details
+                  </button>
                 </div>
-
-                <p className="text-xs text-gray-500 mb-4">
-                  Last Updated: {dayjs(sub.updatedAt).format("MMM D, YYYY h:mm A")}
-                </p>
-
-                <button
-                  onClick={() => handleViewDetails(sub)}
-                  className="w-full py-2 rounded-lg text-white font-medium transition-transform transform hover:scale-105"
-                  style={{ backgroundColor: primaryColor }}
-                >
-                  View Details
-                </button>
               </div>
             );
           })}
         </div>
       )}
 
-      {/* Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
-          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md animate-fade-in">
-            <h3
-              className="text-lg font-semibold mb-4 text-center"
-              style={{ color: primaryColor }}
-            >
-              Suggest Brand Names
-            </h3>
-            <form onSubmit={handleSubmitNames} className="space-y-3">
-              {suggestedNames.map((name, index) => (
-                <input
-                  key={index}
-                  type="text"
-                  value={name}
-                  onChange={(e) => handleChange(index, e.target.value)}
-                  placeholder={`Brand Name ${index + 1}`}
-                  required={index === 0}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-opacity-50"
-                  style={{ borderColor: primaryColor }}
-                />
-              ))}
-              <div className="flex space-x-2 pt-2">
-                <button
-                  type="submit"
-                  className="flex-1 py-2 text-white font-semibold rounded-lg transition-transform transform hover:scale-105"
-                  style={{ backgroundColor: primaryColor }}
-                >
-                  Submit
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="flex-1 py-2 text-white font-semibold rounded-lg transition-transform transform hover:scale-105"
-                  style={{ backgroundColor: primaryColor }}
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
+ {showModal && (
+  <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 px-4">
+    <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-lg transform transition-all animate-fade-in scale-95 hover:scale-100">
+      {/* Header */}
+      <h3
+        className="text-xl font-bold mb-6 text-center"
+        style={{ color: primaryColor }}
+      >
+        Suggest Brand Names
+      </h3>
+
+      {/* Form */}
+      <form onSubmit={handleSubmitNames} className="space-y-4">
+        {suggestedNames.map((name, index) => (
+          <div key={index} className="relative">
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => handleChange(index, e.target.value)}
+              placeholder={`Brand Name ${index + 1}`}
+              required={index === 0}
+              className="w-full px-4 py-3 border rounded-xl text-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-1 transition placeholder-gray-400"
+              style={{
+                borderColor: primaryColor,
+                boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+              }}
+            />
+            <span className="absolute top-1/2 right-3 transform -translate-y-1/2 text-xs text-gray-400">
+              {index + 1}
+            </span>
           </div>
+        ))}
+
+        {/* Buttons */}
+        <div className="flex gap-3 pt-4">
+          <button
+            type="submit"
+            className="flex-1 py-3 rounded-xl font-semibold text-white shadow-md hover:shadow-lg hover:scale-[1.02] transition"
+            style={{ backgroundColor: primaryColor }}
+          >
+            Submit
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowModal(false)}
+            className="flex-1 py-3 rounded-xl font-semibold border shadow-sm hover:bg-gray-100 transition"
+            style={{ borderColor: primaryColor, color: primaryColor }}
+          >
+            Cancel
+          </button>
         </div>
-      )}
+      </form>
+    </div>
+  </div>
+)}
+
     </div>
   );
 };

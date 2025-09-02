@@ -116,7 +116,8 @@ const AdminTrademarkPage = () => {
   }
 
   return (
-    <div className="p-6 space-y-8 max-w-7xl mx-auto">
+    <div className="relative space-y-8 max-w-7xl min-h-screen  mx-auto overflow-hidden">
+
       <h1 className="text-3xl font-bold text-[#7b4159]">Trademark Admin Panel</h1>
 
       {/* ✅ Notification Banner */}
@@ -165,7 +166,11 @@ const AdminTrademarkPage = () => {
       <div>
         {activeTab === "pending" && (
           pending.length > 0 ? (
-            <SuggestionsTable data={pending} onSelect={setSelected} />
+            <SuggestionsTable
+  data={pending}
+  onSelect={handleApprove} // direct approve
+/>
+
           ) : (
             <div className="text-gray-500 text-sm">No pending requests.</div>
           )
@@ -183,15 +188,7 @@ const AdminTrademarkPage = () => {
       </div>
 
       {/* Modals */}
-      {selected && (
-        <ApproveModal
-          suggestion={selected}
-          onClose={() => setSelected(null)}
-          onApprove={handleApprove}
-          loading={actionLoading}
-        />
-      )}
-
+     
       {uploadDocFor && (
         <DocumentUploadModal
           suggestionId={uploadDocFor}
