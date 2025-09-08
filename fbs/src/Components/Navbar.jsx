@@ -8,7 +8,7 @@ export default function Navbar() {
   const navigate = useNavigate();
 
   const navbarBg = source === "fishman" ? "bg-[#7b4159]" : "bg-[#d1383a]";
-  const brandName = source === "fishman" ? "Fishman Business Solutions" : "Veerix";
+  const brandName = source === "fishman" ? "Trademark Manager" : "Veerix";
 
 const handleLogout = () => {
   localStorage.removeItem("user");

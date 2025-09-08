@@ -48,19 +48,22 @@ const PlaceOrderWithTracking = () => {
   const customerId = user?.id;
 
   // Fetch options
-  useEffect(() => {
-    const fetchOptions = async () => {
-      try {
-        const res = await axios.get(`/orders/options/${customerId}`);
-        const { brandNames, moleculeNames } = res.data;
-        setBrands(brandNames || []);
-        setMolecules(moleculeNames || []);
-      } catch (err) {
-        console.error("Failed to fetch options", err);
+ // Fetch trademarks instead of options
+// Fetch trademarks for this customer only
+useEffect(() => {
+  const fetchTrademarks = async () => {
+    try {
+      if (customerId) {
+        const res = await axios.get(`/orders/trademarks/${customerId}`);
+        setBrands(res.data || []);
       }
-    };
-    fetchOptions();
-  }, [customerId]);
+    } catch (err) {
+      console.error("Failed to fetch trademarks", err);
+    }
+  };
+  fetchTrademarks();
+}, [customerId]);
+
 
   // Fetch orders
   const fetchOrders = async () => {
@@ -87,7 +90,7 @@ const PlaceOrderWithTracking = () => {
       setLoading(true);
       setError("");
       await axios.post("/orders/from-trademark", {
-        customerId,
+      customerId: user.id,
         brandName: selectedBrand,
         moleculeName: selectedMolecule,
         quantity,
@@ -142,7 +145,10 @@ const PlaceOrderWithTracking = () => {
                         / {ord.moleculeName}
                       </p>
                     <p className="text-xs text-gray-500 mt-1">
-<span className="font-medium">{ord.subCustomerId?.name || "Unknown"}</span> • 
+<span className="font-medium">
+  {ord.subCustomerId?.name || ord.customerId?.name || "Unknown"}
+</span>
+
   Qty: {ord.quantity} • Placed on {new Date(ord.createdAt).toLocaleDateString()}
 </p>
 
@@ -252,48 +258,46 @@ const PlaceOrderWithTracking = () => {
   </h3>
 
   {/* Brand */}
+  {/* Brand */}
+<div className="mb-5">
+  <label className="block text-sm font-semibold text-gray-700 mb-2">
+    Select Brand
+  </label>
+  <div className="relative">
+    <select
+      className="w-full p-3 pl-10 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-[#d1383a] focus:border-[#d1383a] transition shadow-sm hover:shadow-md"
+      value={selectedBrand}
+      onChange={(e) => {
+        const tm = brands.find((b) => b.selectedName === e.target.value);
+        setSelectedBrand(tm?.selectedName || "");
+        setSelectedMolecule(tm?.selectedBrandName || ""); // ✅ auto set molecule
+      }}
+    >
+      <option value="">-- Select Brand --</option>
+      {brands.map((b) => (
+        <option key={b._id} value={b.selectedName}>
+          {b.selectedName}
+        </option>
+      ))}
+    </select>
+  </div>
+</div>
+
+{/* Molecule (readonly like TrademarkTab) */}
+{selectedMolecule && (
   <div className="mb-5">
     <label className="block text-sm font-semibold text-gray-700 mb-2">
-      Select Brand
+      Molecule
     </label>
-    <div className="relative">
-      <select
-        className="w-full p-3 pl-10 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-[#d1383a] focus:border-[#d1383a] transition shadow-sm hover:shadow-md"
-        value={selectedBrand}
-        onChange={(e) => setSelectedBrand(e.target.value)}
-      >
-        <option value="">-- Select Brand --</option>
-        {brands.map((b, i) => (
-          <option key={i} value={b}>
-            {b}
-          </option>
-        ))}
-      </select>
-      
-    </div>
+    <p className="px-4 py-3 bg-gray-100 rounded-lg text-gray-800">
+      {selectedMolecule}
+    </p>
   </div>
+)}
+
 
   {/* Molecule */}
-  <div className="mb-5">
-    <label className="block text-sm font-semibold text-gray-700 mb-2">
-      Select Molecule
-    </label>
-    <div className="relative">
-      <select
-        className="w-full p-3 pl-10 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-[#d1383a] focus:border-[#d1383a] transition shadow-sm hover:shadow-md"
-        value={selectedMolecule}
-        onChange={(e) => setSelectedMolecule(e.target.value)}
-      >
-        <option value="">-- Select Molecule --</option>
-        {molecules.map((m, i) => (
-          <option key={i} value={m}>
-            {m}
-          </option>
-        ))}
-      </select>
-     
-    </div>
-  </div>
+  
 
   {/* Quantity */}
   <div className="mb-6">

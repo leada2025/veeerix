@@ -17,6 +17,7 @@ const DistributionPage = () => {
     pan: "",
   });
   const [editingIndex, setEditingIndex] = useState(null);
+const [brandMoleculeOptions, setBrandMoleculeOptions] = useState([]);
 
   const [salesOrders, setSalesOrders] = useState([]);
   const [orderData, setOrderData] = useState({
@@ -53,14 +54,18 @@ const DistributionPage = () => {
     if (customerId) fetchBrandAndMolecule();
   }, []);
 
-  const fetchCustomers = async () => {
-    try {
-      const res = await Axios.get("distribution/customers");
-      setCustomers(res.data);
-    } catch (err) {
-      console.error("Error fetching customers:", err);
-    }
-  };
+const fetchCustomers = async () => {
+  try {
+    const user = JSON.parse(localStorage.getItem("user"));
+    if (!user?.id) return;
+
+    const res = await Axios.get(`distribution/customers/${user.id}`);
+    setCustomers(res.data);
+  } catch (err) {
+    console.error("Error fetching customers:", err);
+  }
+};
+
 
  useEffect(() => {
   const user = JSON.parse(localStorage.getItem("user"));
@@ -139,6 +144,8 @@ const fetchOrders = async ({ distributorId }) => {
     }
   };
 
+
+  
   const handleOrderChange = (e) => {
     setOrderData({ ...orderData, [e.target.name]: e.target.value });
   };

@@ -26,7 +26,7 @@ const TrademarkSuggestionSchema = new mongoose.Schema(
     trackingStatus: { type: String, default: "Pending Review" },
 
     isDirect: { type: Boolean, default: false },
-
+selectedBrandName: { type: String, default: null },
     // ✅ New Fields:
     paymentCompleted: { type: Boolean, default: false },
 

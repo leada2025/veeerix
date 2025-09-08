@@ -86,8 +86,8 @@ const stepLabels = [
 
 const handleSubmit = async () => {
   if (selectedDesigns.length < 2 || !customerId) return;
-  if (!selectedTrademark || !selectedMolecule) {
-    alert("Please select trademark & molecule first");
+  if (!selectedTrademark) {
+    alert("Please select a trademark first");
     return;
   }
 
@@ -96,7 +96,7 @@ const handleSubmit = async () => {
     await axios.post("/packing/submit", {
       customerId,
       trademarkName: selectedTrademark,
-      moleculeName: selectedMolecule,
+      // this will already be auto-filled
       selectedDesignIds: selectedIds,
     });
 
@@ -196,18 +196,18 @@ useEffect(() => {
 useEffect(() => {
   const fetchOptions = async () => {
     try {
-      const [tmRes, molRes] = await Promise.all([
-        axios.get("/packing/trademarks"),
-        axios.get("/packing/molecules"),
-      ]);
-      setTrademarks(tmRes.data);
-      setMolecules(molRes.data);
+      if (customerId) {
+        const tmRes = await axios.get(`/packing/trademarks/${customerId}`);
+        setTrademarks(tmRes.data || []);
+      }
     } catch (err) {
-      console.error("Error fetching trademark/molecule:", err);
+      console.error("Error fetching trademark:", err);
     }
   };
   fetchOptions();
-}, []);
+}, [customerId]);
+
+
 
   // ================= RENDER =================
   return (
@@ -815,88 +815,87 @@ import { BadgeCheck, Atom, ArrowRightCircle } from "lucide-react";
 
 const TrademarkTab = ({
   trademarks,
-  molecules,
   selectedTrademark,
-  selectedMolecule,
   setSelectedTrademark,
-  setSelectedMolecule,
   setActiveTab,
-}) => (
-  <div className="bg-white shadow-xl rounded-2xl p-8 border border-gray-100 hover:shadow-2xl transition">
-    {/* Heading */}
-    <div className="flex items-center gap-3 mb-8">
-      <span className="w-2 h-8 bg-[#d1383a] rounded-full"></span>
-      <h2 className="text-2xl font-bold text-gray-900">
-        Select Trademark & Molecule
-      </h2>
-    </div>
+}) => {
+  // find selected trademark object
+  const selectedTm = trademarks.find(
+    (tm) => tm.selectedName === selectedTrademark
+  );
 
-    {/* Trademark Dropdown */}
-    <div className="mb-6">
-      <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-        <BadgeCheck className="w-4 h-4 text-[#d1383a]" />
-        Trademark
-      </label>
+  return (
+    <div className="bg-white shadow-xl rounded-2xl p-8 border border-gray-100 hover:shadow-2xl transition">
+      {/* Heading */}
+      <div className="flex items-center gap-3 mb-8">
+        <span className="w-2 h-8 bg-[#d1383a] rounded-full"></span>
+        <h2 className="text-2xl font-bold text-gray-900">
+          Select Trademark
+        </h2>
+      </div>
+
+      {/* Trademark Dropdown */}
+      <div className="mb-6">
+        <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+          <BadgeCheck className="w-4 h-4 text-[#d1383a]" />
+          Trademark
+        </label>
       <select
-        value={selectedTrademark || ""}
-        onChange={(e) => setSelectedTrademark(e.target.value)}
-        className="w-full p-3 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-[#d1383a] focus:border-[#d1383a] transition shadow-sm hover:shadow-md"
-      >
-        <option value="">-- Select Trademark --</option>
-        {trademarks.map((tm) => (
-          <option key={tm._id} value={tm.selectedName}>
-            {tm.selectedName}
-          </option>
-        ))}
-      </select>
-    </div>
+  value={selectedTrademark || ""}
+  onChange={(e) => {
+    const tm = trademarks.find((t) => t.selectedName === e.target.value);
+    setSelectedTrademark(e.target.value);
+    setSelectedMolecule(tm?.selectedBrandName || ""); // ✅ now molecule is set
+  }}
+  className="w-full p-3 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-[#d1383a] focus:border-[#d1383a] transition shadow-sm hover:shadow-md"
+>
+  <option value="">-- Select Trademark --</option>
+  {trademarks.map((tm) => (
+    <option key={tm._id} value={tm.selectedName}>
+      {tm.selectedName}
+    </option>
+  ))}
+</select>
 
-    {/* Molecule Dropdown */}
-    <div className="mb-8">
-      <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-        <Atom className="w-4 h-4 text-[#d1383a]" />
-        Molecule
-      </label>
-      <select
-        value={selectedMolecule || ""}
-        onChange={(e) => setSelectedMolecule(e.target.value)}
-        className="w-full p-3 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-[#d1383a] focus:border-[#d1383a] transition shadow-sm hover:shadow-md"
-      >
-        <option value="">-- Select Molecule --</option>
-        {molecules.map((mol) => {
-          const displayName =
-            mol.moleculeName?.trim() || mol.customMolecule || "Unnamed";
-          return (
-            <option key={mol._id} value={displayName}>
-              {displayName}
-            </option>
-          );
-        })}
-      </select>
-    </div>
+      </div>
 
-    {/* Continue Button */}
-    <div className="text-right">
-      <button
-        disabled={!selectedTrademark || !selectedMolecule}
-        onClick={() => setActiveTab("select")}
-        className={`px-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 shadow-md transition-all duration-300 
-          ${
-            selectedTrademark && selectedMolecule
-              ? "bg-gradient-to-r from-[#d1383a] to-[#b73030] text-white hover:opacity-90 hover:scale-[1.02] hover:shadow-lg"
-              : "bg-gray-200 text-gray-500 cursor-not-allowed"
-          }`}
-      >
-        Continue
-        <ArrowRightCircle
-          className={`w-5 h-5 transition ${
-            selectedTrademark && selectedMolecule ? "opacity-100" : "opacity-40"
-          }`}
-        />
-      </button>
+      {/* Show Molecule when trademark is chosen */}
+      {selectedTm && (
+        <div className="mb-8">
+          <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+            <Atom className="w-4 h-4 text-[#d1383a]" />
+            Molecule
+          </label>
+          <p className="px-4 py-3 bg-gray-100 rounded-lg text-gray-800">
+            {selectedTm.selectedBrandName || "No molecule linked"}
+          </p>
+        </div>
+      )}
+
+      {/* Continue Button */}
+      <div className="text-right">
+        <button
+          disabled={!selectedTrademark}
+          onClick={() => setActiveTab("select")}
+          className={`px-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 shadow-md transition-all duration-300 
+            ${
+              selectedTrademark
+                ? "bg-gradient-to-r from-[#d1383a] to-[#b73030] text-white hover:opacity-90 hover:scale-[1.02] hover:shadow-lg"
+                : "bg-gray-200 text-gray-500 cursor-not-allowed"
+            }`}
+        >
+          Continue
+          <ArrowRightCircle
+            className={`w-5 h-5 transition ${
+              selectedTrademark ? "opacity-100" : "opacity-40"
+            }`}
+          />
+        </button>
+      </div>
     </div>
-  </div>
-);
+  );
+};
+
 
 
 

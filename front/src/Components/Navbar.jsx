@@ -10,7 +10,7 @@ export default function Navbar() {
   const navbarBg =
     source === "fishman" ? "bg-gradient-to-r from-[#7b4159] to-[#a56573]" : "bg-[#d1383a]";
   const brandName =
-    source === "fishman" ? "Fishman Business Solutions" : "Veerix";
+    source === "fishman" ? "Fishman Business Solutions" : "Manufacturing Tracker";
 
   const handleLogout = () => {
     localStorage.removeItem("user");

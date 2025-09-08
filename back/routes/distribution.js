@@ -5,10 +5,18 @@ const Order = require("../models/Order"); // ✅ Correct model import
 
 // --- Customers CRUD ---
 // --- Customers CRUD ---
-router.get("/customers", async (req, res) => {
-  const customers = await Customer.find();
-  res.json(customers);
+// routes/distribution.js
+router.get("/customers/:distributorId", async (req, res) => {
+  try {
+    const { distributorId } = req.params;
+    const customers = await Customer.find({ distributorId });
+    res.json(customers);
+  } catch (err) {
+    console.error("Error fetching distributor customers:", err);
+    res.status(500).json({ message: "Server error" });
+  }
 });
+
 
 // --- Orders related to Distribution (filter by distributor) ---
 router.get("/orders/:customerId", async (req, res) => {

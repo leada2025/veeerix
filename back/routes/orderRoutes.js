@@ -6,27 +6,42 @@ const TrademarkSuggestion = require("../models/TrademarkSuggestion");
 const BrandRequest = require("../models/BrandRequest");
 
 
+// ✅ Global trademark fetch
+// backend: routes/orders.js
+router.get("/trademarks/:customerId", async (req, res) => {
+  const { customerId } = req.params;
+  try {
+    const trademarks = await TrademarkSuggestion.find({
+      customerId,
+      paymentCompleted: true,
+    }).select("selectedName selectedBrandName");
+
+    res.json(trademarks);
+  } catch (err) {
+    console.error("Error fetching trademarks:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 
 // POST /api/orders/from-trademark
 // POST /api/orders/from-trademark
 router.post("/from-trademark", async (req, res) => {
   try {
-    const { customerId, brandName, moleculeName, customMolecule, quantity } = req.body;
+    const { customerId, subCustomerId, brandName, moleculeName, customMolecule, quantity } = req.body;
 
-    if (!customerId || !brandName || !quantity) {
+    if (!customerId || !brandName || !quantity)
       return res.status(400).json({ error: "Missing required fields" });
-    }
 
-    // ✅ Ensure at least one of moleculeName or customMolecule is provided
-    if (!moleculeName && !customMolecule) {
+    if (!moleculeName && !customMolecule)
       return res.status(400).json({ error: "Either moleculeName or customMolecule is required" });
-    }
 
     const newOrder = await Order.create({
       customerId,
+      subCustomerId: subCustomerId || null, // optional
       brandName,
-      moleculeName: moleculeName || "",     // fallback to empty
-      customMolecule: customMolecule || "", // fallback to empty
+      moleculeName: moleculeName || "",
+      customMolecule: customMolecule || "",
       quantity,
     });
 
@@ -43,10 +58,15 @@ router.get('/customer/:customerId', async (req, res) => {
   try {
     const { customerId } = req.params;
 
-    const allOrders = await Order.find({ customerId })
+    const allOrders = await Order.find({
+      $or: [
+        { customerId },          // distributor's own orders
+        { subCustomerId: customerId }, // orders for their sub-customer
+      ],
+    })
       .sort({ createdAt: -1 })
-      .populate('customerId', 'name email')       // distributor info
-      .populate('subCustomerId', 'name email');   // retailer/customer info
+      .populate('customerId', 'name email')
+      .populate('subCustomerId', 'name email');
 
     res.json(allOrders);
   } catch (err) {
@@ -54,7 +74,6 @@ router.get('/customer/:customerId', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch orders' });
   }
 });
-
 
 
 

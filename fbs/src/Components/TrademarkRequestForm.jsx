@@ -12,7 +12,8 @@ const CustomerPortal = () => {
   const [showModal, setShowModal] = useState(false);
   const { source } = useSource();
   const navigate = useNavigate();
-
+const [molecules, setMolecules] = useState([]);
+const [selectedMolecule, setSelectedMolecule] = useState("");
   const user = JSON.parse(localStorage.getItem("user"));
   const customerId = user?.id;
   const primaryColor = source === "fishman" ? "#7b4159" : "#d1383a";
@@ -37,6 +38,15 @@ const CustomerPortal = () => {
     }
   };
 
+useEffect(() => {
+  if (customerId) {
+    axios.get(`/packing/molecules/${customerId}`).then((res) => {
+      setMolecules(res.data || []);
+    });
+  }
+}, [customerId])
+
+
   const handleChange = (index, value) => {
     const updated = [...suggestedNames];
     updated[index] = value;
@@ -49,10 +59,12 @@ const CustomerPortal = () => {
       await axios.post("/api/trademark", {
         customerId,
         suggestions: suggestedNames,
+        selectedBrandName: selectedMolecule,
       });
-      setSuggestedNames(["", "", "", "", ""]);
-      setShowModal(false);
-      fetchSubmissions();
+     setSuggestedNames(["", "", "", "", ""]);
+setSelectedMolecule("");
+setShowModal(false);
+fetchSubmissions();
     } catch (err) {
       alert("Submission failed.");
     }
@@ -207,6 +219,34 @@ const CustomerPortal = () => {
 
       {/* Form */}
       <form onSubmit={handleSubmitNames} className="space-y-4">
+        {/* Select Molecule */}
+<div>
+  <label className="block text-sm font-medium mb-2 text-gray-600">
+    Select Molecule
+  </label>
+  <select
+    value={selectedMolecule}
+    onChange={(e) => setSelectedMolecule(e.target.value)}
+    required
+    className="w-full px-4 py-3 border rounded-xl text-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-1 transition"
+    style={{ borderColor: primaryColor }}
+  >
+    <option value="">-- Choose Molecule --</option>
+    {molecules.map((m) => {
+  const label = m.moleculeName && m.customMolecule
+    ? `${m.moleculeName} (${m.customMolecule})`
+    : m.moleculeName || m.customMolecule;
+
+  return (
+    <option key={m._id} value={label}>
+      {label}
+    </option>
+  );
+})}
+
+  </select>
+</div>
+
         {suggestedNames.map((name, index) => (
           <div key={index} className="relative">
             <input

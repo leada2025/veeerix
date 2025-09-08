@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import axios from "../api/Axios"; // ✅ make sure Axios is configured with baseURL
 import {
   PackageCheck,
   FlaskConical,
@@ -42,25 +43,55 @@ const DashboardCard = ({ icon: Icon, title, count, color }) => (
 );
 
 const AdminDashboard = () => {
-  const data = {
-    orders: 42,
-    molecules: 18,
-    packingDesigns: 12,
-  };
+  const [stats, setStats] = useState({
+    orders: 0,
+    molecules: 0,
+    packingDesigns: 0,
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await axios.get("/api/users/dashboard");
+        const data = res.data;
+
+        setStats({
+          orders: data.orders.total,
+          molecules: data.brandRequests.total,
+          packingDesigns: data.packingDesigns.total,
+        });
+      } catch (err) {
+        console.error("Dashboard fetch error:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
 
   const chartData = [
-    { name: "Orders", value: data.orders },
-    { name: "Molecules", value: data.molecules },
-    { name: "Packing", value: data.packingDesigns },
+    { name: "Orders", value: stats.orders },
+    { name: "Molecules", value: stats.molecules },
+    { name: "Packing", value: stats.packingDesigns },
   ];
 
   const COLORS = ["#ef4444", "#3b82f6", "#10b981"];
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen text-lg text-gray-500">
+        Loading dashboard...
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-100 via-gray-200 to-gray-100 p-8">
       {/* Header */}
       <div className="mb-10">
-        
+        <h1 className="text-3xl font-bold text-gray-800">Admin Dashboard</h1>
         <p className="text-gray-500">Overview of activities & reports</p>
       </div>
 
@@ -69,19 +100,19 @@ const AdminDashboard = () => {
         <DashboardCard
           icon={ClipboardList}
           title="Orders"
-          count={data.orders}
+          count={stats.orders}
           color="#ef4444"
         />
         <DashboardCard
           icon={FlaskConical}
           title="Molecule Quotes"
-          count={data.molecules}
+          count={stats.molecules}
           color="#3b82f6"
         />
         <DashboardCard
           icon={PackageCheck}
           title="Packing Designs"
-          count={data.packingDesigns}
+          count={stats.packingDesigns}
           color="#10b981"
         />
       </div>

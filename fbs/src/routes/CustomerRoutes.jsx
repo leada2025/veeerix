@@ -14,6 +14,7 @@ import CustomerDirectTrademarkPage from "../Components/CustomerDirectTrademarkPa
 import Dashboard from "../pages/Dashboard";
 import RequestDetails from "../Components/RequestDetails";
 import TrademarkDashboard from "../pages/FbsDashboard";
+import { TrademarkForm } from "../pages/TrademarkManagement";
 
 
 
@@ -35,7 +36,7 @@ const CustomerRoutes = () => (
     
       <Route path="/requests/:id" element={<RequestDetails />} />
       <Route path="/fbsdashboard" element={<TrademarkDashboard />} />
-      
+      <Route path="/fbsmanage" element={<TrademarkForm />} />
 
   </Route>
 );

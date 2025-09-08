@@ -1,8 +1,59 @@
 const express = require("express");
 const router = express.Router();
 const User = require("../models/User");
-
+const BrandRequest = require("../models/BrandRequest");
+const Order = require("../models/Order");
+const PackingDesign = require("../models/PackingDesign");
 // Create new user (admin only)
+
+router.get("/dashboard", async (req, res) => {
+  try {
+    // --- BrandRequest Stats ---
+    const brandRequestCounts = await BrandRequest.aggregate([
+      { $group: { _id: "$status", count: { $sum: 1 } } },
+    ]);
+
+    // --- Order Stats ---
+    const totalOrders = await Order.countDocuments();
+    const recentOrders = await Order.find()
+      .populate("customerId", "name email")
+      .populate("subCustomerId", "name")
+      .sort({ createdAt: -1 })
+      .limit(5);
+
+    // --- PackingDesign Stats ---
+    const designCounts = await PackingDesign.aggregate([
+      { $group: { _id: "$status", count: { $sum: 1 } } },
+    ]);
+
+    const recentDesigns = await PackingDesign.find()
+      .populate("customerId", "name email")
+      .sort({ createdAt: -1 })
+      .limit(5);
+
+    // --- Response ---
+    res.json({
+      success: true,
+      brandRequests: {
+        total: await BrandRequest.countDocuments(),
+        counts: brandRequestCounts,
+      },
+      orders: {
+        total: totalOrders,
+        recent: recentOrders,
+      },
+      packingDesigns: {
+        total: await PackingDesign.countDocuments(),
+        counts: designCounts,
+        recent: recentDesigns,
+      },
+    });
+  } catch (err) {
+    console.error("Admin Dashboard Error:", err);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+});
+
 router.post("/create", async (req, res) => {
   try {
     const { name, email, password, role } = req.body;

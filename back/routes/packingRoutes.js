@@ -13,10 +13,13 @@ const TrademarkSuggestion = require("../models/TrademarkSuggestion");
 const BrandRequest = require("../models/BrandRequest");
 
 // ✅ Fix: use paymentCompleted instead of status
-router.get("/trademarks", async (req, res) => {
+router.get("/trademarks/:customerId", async (req, res) => {
+  const { customerId } = req.params;
   try {
-    const trademarks = await TrademarkSuggestion.find({ paymentCompleted: true })
-      .select("selectedName"); // or .select("selectedName trackingStatus") if needed
+    const trademarks = await TrademarkSuggestion.find({
+      customerId,
+      paymentCompleted: true,
+    }).select("selectedName selectedBrandName");
 
     res.json(trademarks);
   } catch (err) {
@@ -26,17 +29,29 @@ router.get("/trademarks", async (req, res) => {
 });
 
 
+
+
 // GET /packing/molecules — fetch all available molecule names
-router.get("/molecules", async (req, res) => {
+router.get("/molecules/:customerId", async (req, res) => {
+  const { customerId } = req.params;
+
   try {
-    const molecules = await BrandRequest.find({ status: "Paid" })
-      .select("moleculeName customMolecule"); // include both
+    if (!customerId) {
+      return res.status(400).json({ message: "CustomerId is required" });
+    }
+
+    const molecules = await BrandRequest.find({
+      customerId,
+      status: "Paid",
+    }).select("moleculeName customMolecule");
+
     res.json(molecules);
   } catch (err) {
     console.error("Error fetching molecules:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
+
 
 // GET /packing/tracking/design/:designId
 router.get("/tracking/submission/:submissionId", async (req, res) => {
@@ -178,20 +193,25 @@ const design = await PackingDesign.findOneAndUpdate(
 });
 
 router.post("/submit", async (req, res) => {
-  const { customerId, selectedDesignIds, trademarkName, moleculeName } = req.body;
+  const { customerId, selectedDesignIds, trademarkName } = req.body;
 
   try {
-    // Basic validation
-    if (!customerId || !trademarkName || !moleculeName || !selectedDesignIds?.length) {
+    if (!customerId || !trademarkName || !selectedDesignIds?.length) {
       return res.status(400).json({
-        message: "customerId, trademarkName, moleculeName and at least one design are required",
+        message: "customerId, trademarkName and at least one design are required",
       });
+    }
+
+    // 🔹 fetch the trademark to get its linked molecule
+    const tm = await TrademarkSuggestion.findOne({ selectedName: trademarkName });
+    if (!tm) {
+      return res.status(404).json({ message: "Trademark not found" });
     }
 
     const newEntry = new PackingDesign({
       customerId,
       trademarkName,
-      moleculeName,
+      moleculeName: tm.selectedBrandName, // ✅ auto-filled from DB
       selectedDesignIds,
       submitted: true,
     });

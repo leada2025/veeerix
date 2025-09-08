@@ -22,6 +22,7 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
     { label: "Trademark Status", path: "/trademarks/track", icon: <FileText size={20} /> },
     { label: "Trademark History", path: "/trademarkh/history", icon: <FileText size={20} /> },
     { label: "Trademark Records", path: "/admin/my-registered", icon: <FileText size={20} /> },
+    { label: "Trademark Management", path: "/fbsmanage", icon: <FileText size={20} /> },
   ];
 
   return (
