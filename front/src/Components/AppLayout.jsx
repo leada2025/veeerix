@@ -2,14 +2,13 @@ import React, { useEffect } from "react";
 import Sidebar from "./Sidebar";
 import Navbar from "./Navbar";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import useGlobalNotificationChecker from "./useGlobalNotificationChecker";
 
 const AppLayout = () => {
   const [collapsed, setCollapsed] = React.useState(false);
   const activeBrand = localStorage.getItem("activeBrand"); // <- key part
   const location = useLocation();
   const navigate = useNavigate();
- useGlobalNotificationChecker();
+
   useEffect(() => {
     const isFishman = activeBrand === "fishman";
     const allowedPaths = ["/trademark"];
