@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import Select from "react-select";
 import api from "../api/Axios";
 import { FiInfo, FiCheckCircle,FiLoader,FiCreditCard,FiMessageSquare  } from "react-icons/fi";
+import { useNotifications } from "../Context/NotificationContext";
 
 
 
@@ -28,7 +29,7 @@ const [hasNewHistory, setHasNewHistory] = useState(false);
 
 const [editingRowId, setEditingRowId] = useState(null);
 
-
+const { addNotification } = useNotifications();
 
   const getCustomerId = () => {
     try {
@@ -151,13 +152,20 @@ const fetchPreviousRequests = async () => {
 
       const seenTs = row.seenByCustomer ? new Date(row.seenByCustomer).getTime() : 0;
 
-      if (lastActivity > seenTs) {
-        if (row.payment === "Paid") {
-          if (lastActivity > (lastSeenTabs.history || 0)) setHasNewHistory(true);
-        } else {
-          if (lastActivity > (lastSeenTabs.status || 0)) setHasNewStatus(true);
-        }
-      }
+     if (lastActivity > seenTs) {
+  if (row.payment === "Paid") {
+    if (lastActivity > (lastSeenTabs.history || 0)) {
+      setHasNewHistory(true); 
+      addNotification(`History updated for row ${row._id}`);
+    }
+  } else {
+    if (lastActivity > (lastSeenTabs.status || 0)) {
+      setHasNewStatus(true); 
+      addNotification(`Status updated for row ${row._id}`);
+    }
+  }
+}
+
     });
 
     return finalRows;
@@ -234,6 +242,7 @@ const submittedRequestCount = () => {
 
     await fetchPreviousRequests();
         setHasNewStatus(true);
+        addNotification("New update on your brand request!");
   } catch (err) {
     console.error("Quote submission failed:", err);
     alert("Error sending quote. Try again.");

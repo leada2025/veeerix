@@ -1,5 +1,7 @@
 const mongoose = require("mongoose");
 
+
+
 const TrademarkSuggestionSchema = new mongoose.Schema(
   {
     customerId: {
@@ -22,21 +24,18 @@ const TrademarkSuggestionSchema = new mongoose.Schema(
     suggestedToCustomer: [{ type: String }],
 
     selectedName: { type: String, default: null },
+    selectedBrandName: { type: String, default: null },
 
+    // 👇 This will hold either helper workflow OR TRADEMARK_STAGES
     trackingStatus: { type: String, default: "Pending Review" },
 
     isDirect: { type: Boolean, default: false },
-selectedBrandName: { type: String, default: null },
-    // ✅ New Fields:
     paymentCompleted: { type: Boolean, default: false },
 
     adminDocumentUrl: { type: String, default: "" },
-
     customerSignedDocUrl: { type: String, default: "" },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
 module.exports = mongoose.model("TrademarkSuggestion", TrademarkSuggestionSchema);

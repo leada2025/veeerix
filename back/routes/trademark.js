@@ -26,25 +26,41 @@ router.post("/", async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
-
+const TRADEMARK_STAGES = [
+  "New Application / New",
+  "Send to Vienna Codification",
+  "Formalities Check (Pass / Fail)",
+  "Marked for Exam",
+  "Examination Report Issued / Objected",
+  "Ready for Show Cause Hearing",
+  "Accepted & Advertised / Advertised before Accepted",
+  "Opposed",
+  "Registered",
+  "Renewal Due / Expired",
+];
 // NEW: Customer adds a direct finalized trademark
 // NEW: Customer adds a direct finalized trademark
 router.post("/direct", async (req, res) => {
-  const { customerId, name, brandName } = req.body;
+  const { customerId, name, brandName, stage } = req.body;
 
   if (!customerId || !name) {
     return res.status(400).json({ error: "Missing customerId or name." });
   }
+
+  // Validate stage (fallback to "New Application / New")
+  const validStage = TRADEMARK_STAGES.includes(stage)
+    ? stage
+    : "New Application / New";
 
   try {
     const directTrademark = new Trademark({
       customerId,
       suggestions: [{ name, status: "Available" }],
       selectedName: name,
-      selectedBrandName: brandName || null,   // ✅ save molecule/brand name
-      trackingStatus: "Registered",   // ✅ Final stage directly
-      isDirect: true,                 
-      paymentCompleted: true          
+      selectedBrandName: brandName || null,
+      trackingStatus: validStage, // ✅ Now tied to TRADEMARK_STAGES
+      isDirect: true,
+      paymentCompleted: true,
     });
 
     await directTrademark.save();
@@ -58,7 +74,7 @@ router.post("/direct", async (req, res) => {
 // Edit direct trademark
 router.put("/direct/:id", async (req, res) => {
   const { id } = req.params;
-  const { name, brandName } = req.body;
+  const { name, brandName, trackingStatus } = req.body; // <-- include trackingStatus
 
   try {
     const updateFields = {};
@@ -68,6 +84,9 @@ router.put("/direct/:id", async (req, res) => {
     }
     if (brandName) {
       updateFields.selectedBrandName = brandName;
+    }
+    if (trackingStatus) {
+      updateFields.trackingStatus = trackingStatus; // <-- add this
     }
 
     const updated = await Trademark.findByIdAndUpdate(id, updateFields, { new: true });
@@ -79,6 +98,7 @@ router.put("/direct/:id", async (req, res) => {
     res.status(500).json({ error: "Failed to edit trademark" });
   }
 });
+
 
 // Delete direct trademark
 router.delete("/direct/:id", async (req, res) => {
@@ -239,11 +259,24 @@ router.get("/stats", async (req, res) => {
 
 // routes/trademark.js
 // Define proper stage order
-const stageOrder = [
+const NORMAL_STAGE_ORDER = [
   "Finalized by Customer",
   "Payment Done",
   "Docs Uploaded",
   "Registered",
+];
+
+const FULL_STAGE_ORDER = [
+  "New Application / New",
+  "Send to Vienna Codification",
+  "Formalities Check (Pass / Fail)",
+  "Marked for Exam",
+  "Examination Report Issued / Objected",
+  "Ready for Show Cause Hearing",
+  "Accepted & Advertised / Advertised before Accepted",
+  "Opposed",
+  "Registered",
+  "Renewal Due / Expired",
 ];
 
 router.get("/customer-dashboard", async (req, res) => {
@@ -253,7 +286,35 @@ router.get("/customer-dashboard", async (req, res) => {
       return res.status(400).json({ error: "customerId missing" });
     }
 
-    // Stats
+    const normalizeRequest = (req) => {
+      let normalizedStatus = req.trackingStatus;
+
+      if (req.trackingStatus === "Finalized by Customer" && req.paymentCompleted) {
+        normalizedStatus = "Payment Done";
+      }
+
+      if (
+        (req.adminDocumentUrl || req.customerSignedDocUrl) &&
+        req.trackingStatus !== "Registered"
+      ) {
+        normalizedStatus = "Docs Uploaded";
+      }
+
+      return {
+        _id: req._id,
+        customerId: req.customerId,
+        selectedName:
+          req.selectedName ||
+          (Array.isArray(req.suggestions) && req.suggestions.length > 0
+            ? req.suggestions[0].name
+            : "Unnamed"),
+        trackingStatus: normalizedStatus,
+        updatedAt: req.updatedAt,
+        isDirect: req.isDirect || false,
+      };
+    };
+
+    // ---- STATS COUNTS ----
     const active = await Trademark.countDocuments({
       customerId,
       trackingStatus: { $ne: "Registered" },
@@ -266,77 +327,43 @@ router.get("/customer-dashboard", async (req, res) => {
 
     const pendingPayments = await Trademark.countDocuments({
       customerId,
-      selectedName: { $exists: true, $ne: "" },
-      paymentCompleted: false,
+      trackingStatus: "Finalized by Customer",
+      paymentCompleted: { $ne: true },
     });
 
     const docsUploaded = await Trademark.countDocuments({
       customerId,
-      $or: [
-        { adminDocumentUrl: { $exists: true, $ne: "" } },
-        { customerSignedDocUrl: { $exists: true, $ne: "" } },
-      ],
+      $or: [{ adminDocumentUrl: { $exists: true, $ne: "" } }, { customerSignedDocUrl: { $exists: true, $ne: "" } }],
     });
 
-    // Helper to normalize stage
-    const normalizeRequest = (req) => {
-  let normalizedStatus = req.trackingStatus;
-
-  if (req.trackingStatus === "Finalized by Customer" && req.paymentCompleted) {
-    normalizedStatus = "Payment Done";
-  }
-
-  if (
-    (req.adminDocumentUrl || req.customerSignedDocUrl) &&
-    req.trackingStatus !== "Registered"
-  ) {
-    normalizedStatus = "Docs Uploaded";
-  }
-
-  return {
-    _id: req._id,
-    customerId: req.customerId,
-    selectedName:
-      req.selectedName ||
-      (Array.isArray(req.suggestions) && req.suggestions.length > 0
-        ? req.suggestions[0].name
-        : "Unnamed"),
-    trackingStatus: normalizedStatus,
-    updatedAt: req.updatedAt,
-  };
-};
-
-
-    // Active Requests (normalize)
-    const activeRequestsRaw = await Trademark.find({
+    // ---- REQUESTS ----
+    const activeRequests = (await Trademark.find({
       customerId,
       trackingStatus: { $ne: "Registered" },
       selectedName: { $exists: true, $ne: "" },
     })
       .sort({ updatedAt: -1 })
-      .limit(4);
+      .limit(4)).map(normalizeRequest);
 
-    const activeRequests = activeRequestsRaw.map(normalizeRequest);
-
-    // Recent Updates (normalize)
-    const recentUpdatesRaw = await Trademark.find({ customerId })
+    const recentUpdates = (await Trademark.find({ customerId })
       .sort({ updatedAt: -1 })
-      .limit(5);
+      .limit(5)).map(normalizeRequest);
 
-    const recentUpdates = recentUpdatesRaw.map(normalizeRequest);
-
-    // Response
     res.json({
       stats: { active, completed, pendingPayments, docsUploaded },
       activeRequests,
       recentUpdates,
-      stageOrder,
+      stageOrders: {
+        normal: NORMAL_STAGE_ORDER,
+        direct: FULL_STAGE_ORDER,
+      },
     });
   } catch (err) {
     console.error("Customer dashboard error:", err);
     res.status(500).json({ error: "Failed to load customer dashboard" });
   }
 });
+
 
 
 // 2. Admin fetches all suggestions
@@ -348,14 +375,37 @@ router.get("/", async (req, res) => {
 // ✅ Finalized — must be ABOVE `/:customerId`
 router.get("/finalized/:customerId", async (req, res) => {
   const { customerId } = req.params;
-  const doc = await Trademark.find({ customerId, selectedName: { $ne: null } });
-  res.json(doc);
+
+  try {
+    // Filter: only direct trademarks with a selected name
+    const doc = await Trademark.find({
+      customerId,
+      selectedName: { $ne: null },
+      isDirect: true, // ✅ only direct entries
+    });
+
+    res.json(doc);
+  } catch (err) {
+    console.error("Failed to fetch direct trademarks:", err);
+    res.status(500).json({ error: "Server error" });
+  }
 });
 
+
 // ✅ Finalized — must be ABOVE `/:customerId`
+// ✅ Finalized (exclude direct entries)
 router.get("/finalized", async (req, res) => {
-  const finalized = await Trademark.find({ selectedName: { $ne: null } }).populate("customerId", "name email");
-  res.json(finalized);
+  try {
+    const finalized = await Trademark.find({
+      selectedName: { $ne: null },
+      isDirect: { $ne: true }   // 👈 exclude direct entries
+    }).populate("customerId", "name email");
+
+    res.json(finalized);
+  } catch (err) {
+    console.error("Error fetching finalized trademarks:", err);
+    res.status(500).json({ error: "Failed to fetch finalized trademarks" });
+  }
 });
 
 // ✅ General fetch by customerId — comes AFTER all fixed string routes

@@ -6,33 +6,35 @@ export default function TrademarkDashboard({ customerId }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-useEffect(() => {
-  const storedUser = JSON.parse(localStorage.getItem("user"));
-  if (!storedUser?.id) {
-    setLoading(false);
-    return;
-  }
-
-  axios
-    .get(`/api/trademark/customer-dashboard?customerId=${storedUser.id}`)
-    .then((res) => {
-      setData(res.data);
+  useEffect(() => {
+    const storedUser = JSON.parse(localStorage.getItem("user"));
+    if (!storedUser?.id) {
       setLoading(false);
-    })
-    .catch((err) => {
-      console.error("Dashboard fetch error:", err);
-      setLoading(false);
-    });
-}, []);
+      return;
+    }
 
-
+    axios
+      .get(`/api/trademark/customer-dashboard?customerId=${storedUser.id}`)
+      .then((res) => {
+        setData(res.data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Dashboard fetch error:", err);
+        setLoading(false);
+      });
+  }, []);
 
   if (loading) {
     return <p className="p-10 text-center">Loading dashboard...</p>;
   }
 
   if (!data) {
-    return <p className="p-10 text-center text-red-500">Failed to load dashboard</p>;
+    return (
+      <p className="p-10 text-center text-red-500">
+        Failed to load dashboard
+      </p>
+    );
   }
 
   const stats = [
@@ -57,8 +59,12 @@ useEffect(() => {
                   <item.icon className="w-8 h-8 text-[#7b4159]" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500 font-medium">{item.title}</p>
-                  <p className="text-3xl font-extrabold text-gray-800">{item.value}</p>
+                  <p className="text-sm text-gray-500 font-medium">
+                    {item.title}
+                  </p>
+                  <p className="text-3xl font-extrabold text-gray-800">
+                    {item.value}
+                  </p>
                 </div>
               </div>
             </div>
@@ -72,24 +78,43 @@ useEffect(() => {
           </h2>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {data.activeRequests.map((req, idx) => {
-           const stages = data.stageOrder || [];
+              // Decide stage order based on entry type
+              const stages = req.isDirect
+                ? data.stageOrders.direct
+                : data.stageOrders.normal;
+
               const stageIndex = stages.indexOf(req.trackingStatus);
 
               return (
-                <div key={idx} className="bg-white rounded-2xl shadow-md p-6 space-y-5">
+                <div
+                  key={idx}
+                  className="bg-white rounded-2xl shadow-md p-6 space-y-5"
+                >
                   <div className="flex justify-between items-center">
-                    <h3 className="font-bold text-lg text-gray-800">{req.selectedName || req.brandName}</h3>
+                    <h3 className="font-bold text-lg text-gray-800">
+                      {req.selectedName || req.brandName}
+                    </h3>
                     <span className="text-sm text-gray-500 italic">
                       Updated {new Date(req.updatedAt).toDateString()}
                     </span>
                   </div>
+
+                  {/* Progress Bar with scrollable labels for direct entries */}
                   <div>
-                    <div className="flex justify-between mb-3">
+                    <div
+                      className={`flex mb-3 ${
+                        req.isDirect
+                          ? "overflow-x-auto gap-3 whitespace-nowrap pb-1"
+                          : "justify-between"
+                      }`}
+                    >
                       {stages.map((stage, sIdx) => (
                         <div
                           key={sIdx}
                           className={`text-xs font-semibold ${
-                            sIdx <= stageIndex ? "text-[#7b4159]" : "text-gray-400"
+                            sIdx <= stageIndex
+                              ? "text-[#7b4159]"
+                              : "text-gray-400"
                           }`}
                         >
                           {stage}
@@ -99,7 +124,11 @@ useEffect(() => {
                     <div className="relative h-3 bg-gray-200 rounded-full overflow-hidden">
                       <div
                         className="absolute top-0 left-0 h-3 bg-gradient-to-r from-[#7b4159] to-[#9c5571] rounded-full"
-                        style={{ width: `${((stageIndex + 1) / stages.length) * 100}%` }}
+                        style={{
+                          width: `${
+                            ((stageIndex + 1) / stages.length) * 100
+                          }%`,
+                        }}
                       />
                     </div>
                   </div>
@@ -116,7 +145,10 @@ useEffect(() => {
           </h2>
           <div className="bg-white rounded-2xl shadow-md divide-y">
             {data.recentUpdates.map((u, idx) => (
-              <div key={idx} className="p-5 flex items-center justify-between hover:bg-gray-50 transition">
+              <div
+                key={idx}
+                className="p-5 flex items-center justify-between hover:bg-gray-50 transition"
+              >
                 <p className="text-gray-700 font-medium">
                   {u.selectedName || u.brandName} moved to {u.trackingStatus}
                 </p>

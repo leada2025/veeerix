@@ -5,13 +5,16 @@ import App from './App.jsx'
 import React from "react"
 import { BrowserRouter } from "react-router-dom";
 import { SourceProvider } from "./Context/SourceContext.jsx";
+import { NotificationProvider } from './Context/NotificationContext.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
 
       <BrowserRouter>
         <SourceProvider>
+        <NotificationProvider>
         <App />
+        </NotificationProvider>
       </SourceProvider>
     </BrowserRouter>
   </StrictMode>,
