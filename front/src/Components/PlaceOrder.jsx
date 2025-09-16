@@ -50,12 +50,15 @@ const PlaceOrderWithTracking = () => {
   // Fetch options
  // Fetch trademarks instead of options
 // Fetch trademarks for this customer only
+// Fetch trademarks for this customer only
 useEffect(() => {
   const fetchTrademarks = async () => {
     try {
       if (customerId) {
-        const res = await axios.get(`/orders/trademarks/${customerId}`);
-        setBrands(res.data || []);
+        // ✅ Updated endpoint
+        const res = await axios.get(`/api/molecule-trademark/${customerId}`);
+        // res.data.data contains the array of records
+        setBrands(res.data.data || []);
       }
     } catch (err) {
       console.error("Failed to fetch trademarks", err);
@@ -268,17 +271,18 @@ useEffect(() => {
       className="w-full p-3 pl-10 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-[#d1383a] focus:border-[#d1383a] transition shadow-sm hover:shadow-md"
       value={selectedBrand}
       onChange={(e) => {
-        const tm = brands.find((b) => b.selectedName === e.target.value);
-        setSelectedBrand(tm?.selectedName || "");
-        setSelectedMolecule(tm?.selectedBrandName || ""); // ✅ auto set molecule
+     const tm = brands.find((b) => b.trademarkName === e.target.value);
+setSelectedBrand(tm?.trademarkName || "");
+setSelectedMolecule(tm?.moleculeName || "");
+ // ✅ auto set molecule
       }}
     >
       <option value="">-- Select Brand --</option>
-      {brands.map((b) => (
-        <option key={b._id} value={b.selectedName}>
-          {b.selectedName}
-        </option>
-      ))}
+    {brands.map((b) => (
+  <option key={b._id} value={b.trademarkName}>
+    {b.trademarkName}
+  </option>
+))}
     </select>
   </div>
 </div>

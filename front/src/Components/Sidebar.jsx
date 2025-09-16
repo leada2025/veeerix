@@ -12,6 +12,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Truck,
+  Settings
 } from "lucide-react";
 
 const Sidebar = ({ collapsed, setCollapsed }) => {
@@ -37,6 +38,7 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
     { label: "Packing Status", path: "/packing/status", icon: <PackageCheck size={20} /> },
      { label: "Place Order", path: "/place-order", icon: <ShoppingCart size={20} /> },
     { label: "Distribution", path: "/distribution", icon: <Truck size={20} /> },
+     { label: "Settings", path: "/settings", icon: <Settings size={20} /> },
   ];
 
   const visibleNavItems = navItems.filter((item) => {

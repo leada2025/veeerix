@@ -40,7 +40,7 @@ const stepLabels = [
     user = JSON.parse(localStorage.getItem("user"));
   } catch {}
   const customerId = user?.id;
-
+useGlobalNotificationChecker(customerId);
   // Fetch available designs
   useEffect(() => {
     const fetchAvailableDesigns = async () => {
@@ -76,16 +76,17 @@ const stepLabels = [
   }, [customerId]);
 
   // Handlers
-  const toggleDesignSelection = (design) => {
-    if (selectedDesigns.some((d) => d.id === design.id)) {
-      setSelectedDesigns(selectedDesigns.filter((d) => d.id !== design.id));
-    } else if (selectedDesigns.length < 3) {
-      setSelectedDesigns([...selectedDesigns, design]);
-    }
-  };
+const toggleDesignSelection = (design) => {
+  if (selectedDesigns.some((d) => d.id === design.id)) {
+    setSelectedDesigns(selectedDesigns.filter((d) => d.id !== design.id));
+  } else if (selectedDesigns.length < 3) {  // ✅ 1, 2, or 3 allowed
+    setSelectedDesigns([...selectedDesigns, design]);
+  }
+};
+
 
 const handleSubmit = async () => {
-  if (selectedDesigns.length < 2 || !customerId) return;
+  if (selectedDesigns.length < 1 || !customerId) return; // ✅ allow 1 design
   if (!selectedTrademark) {
     alert("Please select a trademark first");
     return;
@@ -96,14 +97,13 @@ const handleSubmit = async () => {
     await axios.post("/packing/submit", {
       customerId,
       trademarkName: selectedTrademark,
-      // this will already be auto-filled
       selectedDesignIds: selectedIds,
     });
 
     setSelectedDesigns([]);
     const res = await axios.get(`/packing/history/${customerId}`);
     setHistory(res.data);
-    setActiveTab("status"); // Move to status after submission
+    setActiveTab("status");
   } catch (err) {
     console.error(err.response?.data || err.message);
   }
@@ -197,11 +197,16 @@ useEffect(() => {
   const fetchOptions = async () => {
     try {
       if (customerId) {
-        const tmRes = await axios.get(`/packing/trademarks/${customerId}`);
-        setTrademarks(tmRes.data || []);
+        const tmRes = await axios.get(`/api/molecule-trademark/${customerId}`);
+        
+        const records = tmRes.data.data || [];
+        
+        // map to expected structure
+        setTrademarks(records.map(r => ({ _id: r._id, trademark: r.trademarkName, molecule: r.moleculeName })));
+        setMolecules(records.map(r => r.moleculeName));
       }
     } catch (err) {
-      console.error("Error fetching trademark:", err);
+      console.error("Error fetching trademark & molecule:", err);
     }
   };
   fetchOptions();
@@ -302,7 +307,7 @@ useEffect(() => {
     selectedTrademark={selectedTrademark}
     selectedMolecule={selectedMolecule}
     setSelectedTrademark={setSelectedTrademark}
-    setSelectedMolecule={setSelectedMolecule}
+  setSelectedMolecule={setSelectedMolecule}
     setActiveTab={setActiveTab}
   />
 )}
@@ -345,7 +350,7 @@ const SelectDesignTab = ({ designs, selectedDesigns, toggleDesignSelection, hand
     {/* Heading */}
     <h2 className="text-2xl font-bold mb-8 flex items-center gap-2 text-gray-900">
       <span className="w-2 h-8 bg-[#d1383a] rounded-full"></span>
-      Select 2–3 Packing Texture Designs
+      Select Graphic Designs
     </h2>
 
     {/* Design Grid */}
@@ -416,18 +421,19 @@ const SelectDesignTab = ({ designs, selectedDesigns, toggleDesignSelection, hand
 
         {/* Submit Button */}
         <div className="flex justify-end">
-          <button
-            disabled={selectedDesigns.length < 2}
-            onClick={handleSubmit}
-            className={`px-8 py-3 rounded-lg font-semibold shadow-md transition 
-              ${
-                selectedDesigns.length >= 2 && selectedDesigns.length <= 3
-                  ? "bg-gradient-to-r from-[#d1383a] to-[#b73030] text-white hover:opacity-90"
-                  : "bg-gray-300 text-gray-600 cursor-not-allowed"
-              }`}
-          >
-            Submit for Editing →
-          </button>
+         <button
+  disabled={selectedDesigns.length < 1}   // ✅ allow submit with 1+
+  onClick={handleSubmit}
+  className={`px-8 py-3 rounded-lg font-semibold shadow-md transition 
+    ${
+      selectedDesigns.length >= 1 && selectedDesigns.length <= 3
+        ? "bg-gradient-to-r from-[#d1383a] to-[#b73030] text-white hover:opacity-90"
+        : "bg-gray-300 text-gray-600 cursor-not-allowed"
+    }`}
+>
+  Submit for Editing →
+</button>
+
         </div>
       </div>
     )}
@@ -812,26 +818,26 @@ if (!history.length) {
 
 
 import { BadgeCheck, Atom, ArrowRightCircle } from "lucide-react";
+import useGlobalNotificationChecker from "./useGlobalNotificationChecker";
 
 const TrademarkTab = ({
   trademarks,
   selectedTrademark,
   setSelectedTrademark,
   setActiveTab,
+  setSelectedMolecule, // ✅ make sure this is passed from parent
 }) => {
   // find selected trademark object
-  const selectedTm = trademarks.find(
-    (tm) => tm.selectedName === selectedTrademark
-  );
+  const selectedTm = Array.isArray(trademarks)
+    ? trademarks.find((tm) => tm.trademark === selectedTrademark)
+    : null;
 
   return (
     <div className="bg-white shadow-xl rounded-2xl p-8 border border-gray-100 hover:shadow-2xl transition">
       {/* Heading */}
       <div className="flex items-center gap-3 mb-8">
         <span className="w-2 h-8 bg-[#d1383a] rounded-full"></span>
-        <h2 className="text-2xl font-bold text-gray-900">
-          Select Trademark
-        </h2>
+        <h2 className="text-2xl font-bold text-gray-900">Select Trademark</h2>
       </div>
 
       {/* Trademark Dropdown */}
@@ -840,23 +846,31 @@ const TrademarkTab = ({
           <BadgeCheck className="w-4 h-4 text-[#d1383a]" />
           Trademark
         </label>
-      <select
-  value={selectedTrademark || ""}
-  onChange={(e) => {
-    const tm = trademarks.find((t) => t.selectedName === e.target.value);
-    setSelectedTrademark(e.target.value);
-    setSelectedMolecule(tm?.selectedBrandName || ""); // ✅ now molecule is set
-  }}
-  className="w-full p-3 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-[#d1383a] focus:border-[#d1383a] transition shadow-sm hover:shadow-md"
->
-  <option value="">-- Select Trademark --</option>
-  {trademarks.map((tm) => (
-    <option key={tm._id} value={tm.selectedName}>
-      {tm.selectedName}
-    </option>
-  ))}
-</select>
+        <select
+          value={selectedTrademark || ""}
+          onChange={(e) => {
+            const value = e.target.value;
 
+            if (!value) {
+              // ✅ reset when empty
+              setSelectedTrademark("");
+              setSelectedMolecule("");
+              return;
+            }
+
+            const tm = trademarks.find((t) => t.trademark === value);
+            setSelectedTrademark(value);
+            setSelectedMolecule(tm?.molecule || "");
+          }}
+          className="w-full p-3 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-[#d1383a] focus:border-[#d1383a] transition shadow-sm hover:shadow-md"
+        >
+          <option value="">-- Select Trademark --</option>
+          {trademarks.map((tm) => (
+            <option key={tm._id} value={tm.trademark}>
+              {tm.trademark}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* Show Molecule when trademark is chosen */}
@@ -867,7 +881,7 @@ const TrademarkTab = ({
             Molecule
           </label>
           <p className="px-4 py-3 bg-gray-100 rounded-lg text-gray-800">
-            {selectedTm.selectedBrandName || "No molecule linked"}
+            {selectedTm.molecule || "No molecule linked"}
           </p>
         </div>
       )}
@@ -895,8 +909,6 @@ const TrademarkTab = ({
     </div>
   );
 };
-
-
 
 
 

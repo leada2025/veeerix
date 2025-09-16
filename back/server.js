@@ -12,9 +12,9 @@ const orderRoutes = require("./routes/orderRoutes");
 const distributionRoutes = require("./routes/distribution");
 const path = require("path");
 const app = express();
-
+const moleculeTrademarkRoutes = require("./routes/moleculeTrademark");
 app.use(cors({
-  origin: ["http://localhost:5173","http://localhost:5174", "https://veeerix-1.onrender.com"],
+  origin: ["http://localhost:5173","http://localhost:5174", "https://veeerix-1.onrender.com","https://veeerix-production.up.railway.app"],
   credentials: true,
 }));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
@@ -36,7 +36,7 @@ app.use("/uploads", express.static("uploads"));
 app.use("/api/molecules", moleculeRoutes);
 app.use("/orders", orderRoutes);
 app.use("/distribution", distributionRoutes);
-
+app.use("/api/molecule-trademark", moleculeTrademarkRoutes);
 
 // Start server
 const PORT = process.env.PORT || 5000;

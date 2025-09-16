@@ -3,28 +3,33 @@ import React, { createContext, useContext, useState } from "react";
 const NotificationContext = createContext();
 
 export const NotificationProvider = ({ children }) => {
-  const [hasNotification, setHasNotification] = useState(false);
   const [messages, setMessages] = useState([]);
+  const [bellSeen, setBellSeen] = useState(true);
 
-  const addNotification = (msg) => {
-    setMessages((prev) => {
-      // ✅ avoid adding duplicate messages
-      if (prev.includes(msg)) return prev;
+ const addNotification = (notif) => {
+  setMessages(prev => {
+    if (prev.find(m => m.message === notif.message)) return prev; // prevent duplicates
+    setBellSeen(false); // trigger bell blink
+    return [...prev, notif];
+  });
+};
 
-      setHasNotification(true);
-      return [...prev, msg];
-    });
-  };
 
   const clearNotifications = () => {
-    setHasNotification(false);
     setMessages([]);
+    setBellSeen(true);
   };
 
+  const markBellSeen = () => setBellSeen(true);
+
   return (
-    <NotificationContext.Provider
-      value={{ hasNotification, addNotification, clearNotifications, messages }}
-    >
+    <NotificationContext.Provider value={{
+      messages,
+      bellSeen,
+      addNotification,
+      clearNotifications,
+      markBellSeen
+    }}>
       {children}
     </NotificationContext.Provider>
   );

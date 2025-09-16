@@ -36,23 +36,36 @@ const [brandMoleculeOptions, setBrandMoleculeOptions] = useState([]);
   }, []);
 
   // Load brands & molecules
-  useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user"));
-    const customerId = user?.id;
+ useEffect(() => {
+  const user = JSON.parse(localStorage.getItem("user"));
+  const customerId = user?.id;
 
-    const fetchBrandAndMolecule = async () => {
-      try {
-        const res = await Axios.get(`/orders/options/${customerId}`);
-        const { brandNames, moleculeNames } = res.data;
-        setBrands(brandNames || []);
-        setMolecules(moleculeNames || []);
-      } catch (err) {
-        console.error("Failed to fetch brand and molecule", err);
-      }
-    };
+  const fetchBrandAndMolecule = async () => {
+    try {
+      if (!customerId) return;
 
-    if (customerId) fetchBrandAndMolecule();
-  }, []);
+      // ✅ Use Molecule & Trademark API
+      const res = await Axios.get(`/api/molecule-trademark/${customerId}`);
+
+      const records = res.data.data || [];
+      // Extract unique brands and molecules
+      const brandNames = records.map(r => r.trademarkName);
+      const moleculeNames = records.map(r => r.moleculeName);
+
+      setBrands(brandNames);
+      setMolecules(moleculeNames);
+
+      // Optionally, store full records for linking later
+      setBrandMoleculeOptions(records);
+
+    } catch (err) {
+      console.error("Failed to fetch brand and molecule", err);
+    }
+  };
+
+  fetchBrandAndMolecule();
+}, []);
+
 
 const fetchCustomers = async () => {
   try {
@@ -297,33 +310,43 @@ const fetchOrders = async ({ distributorId }) => {
         <div>
           <label className="text-sm font-semibold text-gray-700">Brand Name</label>
           <select
-            name="brandName"
-            value={orderData.brandName || ""}
-            onChange={handleOrderChange}
-            className="w-full mt-2 px-4 py-3 border rounded-xl focus:ring-2 focus:ring-[#d1383a] transition shadow-sm hover:shadow-md"
-            required
-          >
-            <option value="">Select Brand</option>
-            {brands.map((b, idx) => (
-              <option key={idx} value={b}>{b}</option>
-            ))}
-          </select>
+  name="brandName"
+  value={orderData.brandName || ""}
+  onChange={(e) => {
+    const selected = brandMoleculeOptions.find(
+      (b) => b.trademarkName === e.target.value
+    );
+    setOrderData({
+      ...orderData,
+      brandName: selected?.trademarkName || "",
+      moleculeName: selected?.moleculeName || "",
+    });
+  }}
+  className="w-full mt-2 px-4 py-3 border rounded-xl focus:ring-2 focus:ring-[#d1383a] transition shadow-sm hover:shadow-md"
+  required
+>
+  <option value="">Select Brand</option>
+  {brands.map((b, idx) => (
+    <option key={idx} value={b}>{b}</option>
+  ))}
+</select>
+
         </div>
 
         <div>
           <label className="text-sm font-semibold text-gray-700">Molecule Name</label>
-          <select
-            name="moleculeName"
-            value={orderData.moleculeName || ""}
-            onChange={handleOrderChange}
-            className="w-full mt-2 px-4 py-3 border rounded-xl focus:ring-2 focus:ring-[#d1383a] transition shadow-sm hover:shadow-md"
-            required
-          >
-            <option value="">Select Molecule</option>
-            {molecules.map((m, idx) => (
-              <option key={idx} value={m}>{m}</option>
-            ))}
-          </select>
+         <select
+  name="moleculeName"
+  value={orderData.moleculeName || ""}
+  disabled
+  className="w-full mt-2 px-4 py-3 border rounded-xl bg-gray-100 text-gray-700 cursor-not-allowed"
+>
+  <option value="">Select Molecule</option>
+  {molecules.map((m, idx) => (
+    <option key={idx} value={m}>{m}</option>
+  ))}
+</select>
+
         </div>
 
         <div>
