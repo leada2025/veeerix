@@ -54,7 +54,7 @@ const LoginPage = () => {
             isFishman ? "text-[#7b4159]" : "text-[#d1383a]"
           }`}
         >
-          {isFishman ? "Fishman Login" : "Veerix Login"}
+          {isFishman ? "Fishman login" : "Veerix Login"}
         </h2>
 
         {error && (
